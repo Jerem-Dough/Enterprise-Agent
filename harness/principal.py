@@ -10,7 +10,6 @@ docs/DESIGN.md, "Identity and authorization", for how that maps.
 """
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 
 
