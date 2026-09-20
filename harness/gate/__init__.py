@@ -159,23 +159,73 @@ class Gate:
             definition = workflows.get(plan.workflow)
             params = definition.params_model.model_validate(plan.workflow_params)
             facts = definition.gate_facts(params, scoped_store)
+            # Every candidate the workflow could land on is an intent, because
+            # approval is granted before the choice is made.
+            intents = [
+                {
+                    "supplier_id": supplier_id,
+                    "part_id": facts.get("part_id"),
+                    "qty": facts.get("qty"),
+                    "unit_price": float(
+                        (scoped_store.supplier(supplier_id) or {})
+                        .get("pricing", {})
+                        .get(facts.get("part_id"), 0)
+                    ),
+                    "needed_by": facts.get("needed_by"),
+                }
+                for supplier_id in facts.get("supplier_candidates") or []
+            ]
             return set(definition.required_scopes()), {
                 "path": "workflow",
                 "workflow": definition.name,
                 "version": definition.version,
                 "declared_steps": [s.id for s in definition.steps],
+                "purchase_intents": intents,
                 **facts,
             }
 
         scopes: set[str] = set()
         catalogue = all_tools()
         actions = []
+        intents = []
         for action in plan.actions:
             spec = catalogue.get(action.tool)
             if spec is not None:
                 scopes |= spec.scopes
             actions.append({"tool": action.tool, "params": action.params})
-        return scopes, {"path": "free_form", "actions": actions}
+            if action.tool == "create_purchase_order":
+                params = action.params
+                intents.append({
+                    "supplier_id": params.get("supplier_id"),
+                    "part_id": params.get("part_id"),
+                    "qty": params.get("qty"),
+                    "unit_price": float(params.get("unit_price") or 0),
+                    "needed_by": params.get("needed_by"),
+                })
+
+        # A free-form purchase has to be valued and priced against the part's
+        # standing cost, or it would escape both the approval threshold and the
+        # price premium rule. Those rules are not workflow features.
+        value = sum(
+            float(i["unit_price"] or 0) * float(i["qty"] or 0) for i in intents
+        )
+        baseline = 0.0
+        if intents:
+            part = scoped_store.part(intents[0]["part_id"]) if intents[0]["part_id"] else None
+            baseline = float((part or {}).get("unit_cost") or 0)
+
+        return scopes, {
+            "path": "free_form",
+            "actions": actions,
+            "purchase_intents": intents,
+            "part_id": intents[0]["part_id"] if intents else None,
+            "needed_by": intents[0]["needed_by"] if intents else None,
+            "worst_case_unit_price": max(
+                (float(i["unit_price"] or 0) for i in intents), default=0.0
+            ),
+            "original_unit_price": baseline,
+            "worst_case_value": round(value, 2),
+        }
 
     # -- permission rules --------------------------------------------------
 
@@ -217,17 +267,21 @@ class Gate:
         rules = policy.get("purchase_orders", {})
         checks: list[Check] = []
 
-        suppliers = self._suppliers_in_play(facts)
-        part_id = facts.get("part_id")
+        # One normalised list for both paths. Deriving the part from the intent
+        # rather than from a top-level field is what makes this rule apply to a
+        # free-form purchase as well as to a workflow.
+        intents = [i for i in facts.get("purchase_intents") or [] if i.get("supplier_id")]
 
-        if rules.get("supplier_must_be_approved_for_part") and suppliers and part_id:
+        if rules.get("supplier_must_be_approved_for_part") and intents:
             offending = []
-            for supplier_id in suppliers:
-                record = store.supplier(supplier_id) or {}
+            for intent in intents:
+                record = store.supplier(intent["supplier_id"]) or {}
                 approved_parts = record.get("approved_parts") or []
-                if not record.get("approved") or part_id not in approved_parts:
+                if not record.get("approved") or intent["part_id"] not in approved_parts:
                     offending.append(
-                        {"supplier_id": supplier_id, "name": record.get("name"),
+                        {"supplier_id": intent["supplier_id"],
+                         "part_id": intent["part_id"],
+                         "name": record.get("name"),
                          "approved": record.get("approved"),
                          "approved_parts": approved_parts}
                     )
@@ -239,14 +293,14 @@ class Gate:
                         "refused: "
                         + "; ".join(
                             f"{o['supplier_id']} ({o['name']}) is not approved for "
-                            f"{part_id}" for o in offending
+                            f"{o['part_id']}" for o in offending
                         )
                     ) if offending else
-                    f"every supplier in play is approved for {part_id}",
-                    {"part_id": part_id, "suppliers_checked": suppliers,
-                     "offending": offending},
+                    "every supplier in play is approved for the part it would supply",
+                    {"intents": intents, "offending": offending},
                 )
             )
+        part_id = facts.get("part_id")
 
         premium = rules.get("max_unit_price_premium_pct")
         baseline = float(facts.get("original_unit_price") or 0)
@@ -331,22 +385,6 @@ class Gate:
                           {"lot_id": to_lot, "allocated_to": other})
                 )
         return checks
-
-    @staticmethod
-    def _suppliers_in_play(facts: dict) -> list[str]:
-        """Which suppliers this plan could end up ordering from.
-
-        For a workflow that is the whole candidate list, because the choice has
-        not been made yet and approving the plan approves any of them. For
-        free-form it is whatever the action names.
-        """
-        if facts.get("path") == "workflow":
-            return list(facts.get("supplier_candidates") or [])
-        return [
-            a["params"]["supplier_id"]
-            for a in facts.get("actions", [])
-            if a["tool"] == "create_purchase_order" and a["params"].get("supplier_id")
-        ]
 
     # -- approval routing --------------------------------------------------
 
