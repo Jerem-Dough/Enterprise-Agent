@@ -10,3 +10,5 @@ runs/
 .env
 _smoke/
 .pytest_cache/
+runs/
+_demo/

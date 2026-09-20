@@ -253,10 +253,29 @@ class CassetteClient(LLMClient):
         return parsed, call
 
 
+def load_env(path: str | Path = ".env") -> None:
+    """Read a local `.env` into the environment, without a dependency.
+
+    Existing variables win, so an exported key beats the file and CI never
+    picks up somebody's laptop credentials. The file is gitignored; `.env.example`
+    is the committed copy that documents what belongs in it.
+    """
+    env_file = Path(path)
+    if not env_file.exists():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip("'\""))
+
+
 def build_client(
     cassette_dir: str | Path = "cassettes", *, mode: str | None = None
 ) -> LLMClient:
     """The client the CLI and the tests both use."""
+    load_env(Path(__file__).resolve().parents[2] / ".env")
     return CassetteClient(
         CassetteStore(cassette_dir), mode=mode or os.environ.get("SILO_LLM_MODE", "auto")
     )

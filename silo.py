@@ -24,16 +24,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from pathlib import Path
 
+import console
 from harness import detect, providers, tools, workflows
 from harness.kernel import Harness
 
 ROOT = Path(__file__).parent
-BOLD, DIM, RESET = "\033[1m", "\033[2m", "\033[0m"
-GREEN, RED, YELLOW, CYAN = "\033[32m", "\033[31m", "\033[33m", "\033[36m"
+_P = console.setup()
+BOLD, DIM, RESET = _P.BOLD, _P.DIM, _P.RESET
+GREEN, RED, YELLOW, CYAN = _P.GREEN, _P.RED, _P.YELLOW, _P.CYAN
 
 
 def heading(text: str) -> None:
@@ -342,8 +345,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("catalogue").set_defaults(fn=cmd_catalogue)
 
     p = sub.add_parser("demo")
-    p.add_argument("--keep", action="store_true",
-                   help="do not reset the database first")
+    p.add_argument("--scripted", action="store_true",
+                   help="use the scripted model client instead of the API")
     p.set_defaults(fn=lambda a: __import__("demo").run(a))
 
     args = parser.parse_args(argv)
