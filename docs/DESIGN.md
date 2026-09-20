@@ -27,7 +27,7 @@ downstream system. The user was present, so consent and MFA are real.
 **Unattended, which is the interesting one.** A detector fires at 04:00 for a
 purchasing manager who is asleep. There is no live session to borrow. The honest
 answer is that the *sweep* runs as a service identity holding no data scopes at
-all — which is exactly what `principal.SYSTEM` is in this repo — and the moment
+all (which is exactly what `principal.SYSTEM` is in this repo), and the moment
 it identifies a subject user, it performs an OAuth token exchange
 (RFC 8693) against the IdP, presenting its own service credential and the
 subject's identifier, and receives a delegated token scoped to that user. The
@@ -98,8 +98,8 @@ Almost nothing, and the restraint is the design.
 
 Two kinds of fact leave a run today (`harness/memory/`):
 
-- `supplier.<id>.slips` — that a supplier moved a promised date, and when
-- `part.<id>.last_reroute` — that a part's supply was rerouted, and to whom
+- `supplier.<id>.slips`: that a supplier moved a promised date, and when
+- `part.<id>.last_reroute`: that a part's supply was rerouted, and to whom
 
 Both are **observations of events**, not statements about the current state of
 the world. That is the rule I would keep at any scale: *remember what happened,
@@ -118,7 +118,7 @@ Applied to the obvious temptations:
 
 What I would add at scale, and only these: **durable user preferences the user
 stated explicitly** ("always ask me before touching anything over £50k"), and
-**outcome feedback** — that a recommendation was approved, rejected, or rejected
+**outcome feedback**: that a recommendation was approved, rejected, or rejected
 with a reason. The second is the only honest source of signal about whether the
 agent is any good, and it feeds section 5.
 
@@ -225,8 +225,8 @@ the global one is correct.
 The parts I would not change: the scoped handle, the tool contract, the gate's
 rule structure, the workflow definition format, and the run folder. They are all
 per-run and stateless, so they scale by adding processes. That is the payoff for
-keeping the kernel free of domain logic, and it is the claim Scenario B tests —
-it added a detector, a provider, two tools and a user, and changed nothing in
+keeping the kernel free of domain logic, and it is the claim Scenario B
+tests. It added a detector, a provider, two tools and a user, and changed nothing in
 the kernel, the gate, the planner or the audit layer.
 
 ---
@@ -249,7 +249,7 @@ real:
 - *Latency.* Today the context bundle is built from eight local reads. Against a
   real ERP that is eight network calls with tail latency. Providers should fetch
   concurrently, and the bundle needs a budget with partial results recorded in
-  `omitted` — which is the mechanism that already exists for scope denials, used
+  `omitted`, which is the mechanism that already exists for scope denials, used
   for a second reason.
 - *Pagination and filtering.* `production_orders(consumes=part_id)` filters in
   Python over a handful of rows. Against a real system this must push down into
@@ -263,7 +263,7 @@ real:
   duplicate purchase order and it deserves the care.
 
 **Microsoft Graph.** `inbox()` maps to `/me/messages` and `my_events()` to
-`/me/calendarView` — genuinely close to what is here, because the mail and
+`/me/calendarView`, genuinely close to what is here, because the mail and
 calendar providers were written to take no user argument, which is exactly the
 `/me` shape. `is_out_of_office()` maps to `/users/{id}/calendar/getSchedule`,
 which returns free and busy without event details, which is the reason the
@@ -277,8 +277,8 @@ and it is the one place I would resist the obvious design. The temptation is a
 vector index over everything and a top-k retrieval into the bundle. The problem
 is that the gate cannot check a passage the way it checks a supplier record, and
 the citation requirement in `plan/schema.py` becomes unverifiable. I would scope
-retrieval to documents *attached to the entities in focus* — the spec for this
-part, the contract with this supplier — so that every retrieved passage still
+retrieval to documents *attached to the entities in focus*: the spec for this
+part, the contract with this supplier. That way every retrieved passage still
 has an addressable record id behind it.
 
 ---
@@ -296,7 +296,7 @@ worth having on each:
 - **plan**: model, cache hit rate, input and output tokens, latency, whether a
   cassette was replayed, citation count, confidence
 - **gate**: every rule and its verdict, not just the outcome
-- **execute**: per step — tool, idempotency key, whether it was a replay,
+- **execute**: per step, so tool, idempotency key, whether it was a replay,
   latency, and for compensations whether the effect was actually reversed
 
 The last one is the one people forget. A dashboard that counts "compensations
@@ -310,14 +310,14 @@ Split it, because these fail differently and conflating them hides both:
 
 **Detection quality.** Precision is measurable directly: what fraction of
 attention items led to an approved action rather than a rejection or a
-no-action. Recall is harder and needs a ground truth the agent cannot produce —
-I would get it from incidents. Every production stoppage caused by a material
+no-action. Recall is harder and needs a ground truth the agent cannot
+produce. I would get it from incidents. Every production stoppage caused by a material
 shortage is a recall failure, and comparing the incident log to the attention
 item log gives a real miss rate.
 
 **Recommendation quality.** The approval decision is the label, and it arrives
-free. Approval rate, rejection rate, and — most informative — **modification
-rate**: how often a human approves something different from what was proposed.
+free. Approval rate, rejection rate, and, most informative of all, the
+**modification rate**: how often a human approves something different from what was proposed.
 A recommendation that is always approved unchanged is either very good or a
 rubber stamp, and the two are distinguishable by looking at time-to-decision.
 
@@ -354,8 +354,8 @@ window and the exact output.
    compare proposals. Divergence is the thing to alert on.
 
 The honest gap: none of this catches a *systematically* bad recommendation that
-humans also approve. For that the only real signal is outcome — did the part
-arrive, did the line run — which arrives days later and is the reason the
+humans also approve. For that the only real signal is outcome: did the part
+arrive, did the line run. It arrives days later, and it is the reason the
 follow-up loop exists at all.
 
 ---
@@ -406,15 +406,15 @@ knowledge of its position in the graph.
 This is the one I would change first. Right now approval happens in the kernel,
 before the workflow starts, and the whole workflow is gated at once against the
 worst case. That works for the reroute and it does not generalise: a workflow
-that needs a second approval halfway through — say, if the chosen supplier turns
-out to be more expensive than the estimate — cannot express it. Approval should
+that needs a second approval halfway through, say if the chosen supplier turns
+out to be more expensive than the estimate, cannot express it. Approval should
 be an `await_human` node that suspends the instance and persists it, with the
 existing approval routing hanging off it. The machinery is already nearly there:
 instances persist after every step, and resumption works. It is a node type and
 a status, not a rewrite.
 
-**The deeper question underneath it.** The brief's framing — reasoning as a
-small node inside the graph rather than the thing driving it — is one I agree
+**The deeper question underneath it.** The brief's framing, reasoning as a
+small node inside the graph rather than the thing driving it, is one I agree
 with, and I would go further: the free-form planner should shrink over time, not
 grow. Every time a situation recurs often enough to have a right answer, that
 answer should become a workflow, and the planner's job narrows to routing.
@@ -449,7 +449,7 @@ definition rather than inferring it:
 - **A step was added, removed, or reordered.** In-flight instances must finish
   on the old definition. This means keeping old versions loadable, which means
   definitions are versioned artifacts rather than whatever is currently in the
-  module — the change I would make to support this is to register every version
+  module. The change I would make to support this is to register every version
   under `name@version` and have instances resolve by that key.
 - **A step's parameters changed shape.** The instance's persisted params no
   longer validate. Either supply a migration function alongside the new version
@@ -459,5 +459,5 @@ definition rather than inferring it:
 For anything that cannot resume, the safe default is **compensate and re-enter
 the loop** rather than abandon: the situation that triggered the workflow is
 probably still true, and re-detecting it produces a fresh plan against the
-current definition. That path already exists — it is what the follow-up check
+current definition. That path already exists: it is what the follow-up check
 does when a shipment has not arrived.

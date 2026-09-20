@@ -1,4 +1,4 @@
-# company/ — the modelled world
+# company/: the modelled world
 
 One job: hold the seed state of Northfield Manufacturing as plain, readable JSON.
 

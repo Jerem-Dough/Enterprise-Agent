@@ -264,10 +264,10 @@ floor and silence would be the dangerous alternative.
 
 ## Documents
 
-- [`MODEL.md`](MODEL.md) — what I modelled, what I kept, changed, added and left
+- [`MODEL.md`](MODEL.md): what I modelled, what I kept, changed, added and left
   out, and two deliberate deviations from the brief
-- [`docs/DESIGN.md`](docs/DESIGN.md) — identity and authorization, long-term
+- [`docs/DESIGN.md`](docs/DESIGN.md): identity and authorization, long-term
   memory, scaling, connecting real systems, observability, and whether I would
   build the workflow engine this way again
-- [`docs/RECORDED-RUN.md`](docs/RECORDED-RUN.md) — a full Scenario A run:
+- [`docs/RECORDED-RUN.md`](docs/RECORDED-RUN.md): a full Scenario A run:
   approval prompt, execution, audit trail

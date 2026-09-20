@@ -12,8 +12,8 @@ readable, and already scoped to exactly one run by construction.
 of fact get promoted out of a run, and both are observations rather than
 conclusions:
 
-- `supplier.<id>.slips` — that a supplier moved a promised date, and when.
-- `part.<id>.last_reroute` — that a part's supply was rerouted, and to whom.
+- `supplier.<id>.slips`: that a supplier moved a promised date, and when.
+- `part.<id>.last_reroute`: that a part's supply was rerouted, and to whom.
 
 What is *not* promoted is anything the systems of record already know. The ERP
 knows what the current promised date is. Copying it here would create a second
