@@ -1,0 +1,74 @@
+[
+  {
+    "user_id": "u-100",
+    "name": "Priya Raghavan",
+    "email": "priya.raghavan@northfield-mfg.example",
+    "role": "Operations Director",
+    "manager_id": null,
+    "backup_approver_id": "u-101",
+    "scopes": [
+      "erp:part:read", "erp:supplier:read",
+      "erp:po:read", "erp:po:create", "erp:po:cancel",
+      "erp:production:read", "erp:quality:read",
+      "mail:read", "mail:send", "calendar:read", "production:notify"
+    ],
+    "approval_limits": { "po_create_max_value": 250000 }
+  },
+  {
+    "user_id": "u-101",
+    "name": "Dana Whitfield",
+    "email": "dana.whitfield@northfield-mfg.example",
+    "role": "Purchasing Manager",
+    "manager_id": "u-100",
+    "backup_approver_id": "u-102",
+    "scopes": [
+      "erp:part:read", "erp:supplier:read",
+      "erp:po:read", "erp:po:create", "erp:po:cancel",
+      "erp:production:read",
+      "mail:read", "mail:send", "calendar:read", "production:notify"
+    ],
+    "approval_limits": { "po_create_max_value": 25000 }
+  },
+  {
+    "user_id": "u-102",
+    "name": "Marcus Webb",
+    "email": "marcus.webb@northfield-mfg.example",
+    "role": "Senior Buyer",
+    "manager_id": "u-101",
+    "backup_approver_id": "u-100",
+    "scopes": [
+      "erp:part:read", "erp:supplier:read",
+      "erp:po:read", "erp:po:create",
+      "erp:production:read",
+      "mail:read", "mail:send", "calendar:read", "production:notify"
+    ],
+    "approval_limits": { "po_create_max_value": 20000 },
+    "_seed_note": "Dana's designated backup. Deliberately holds a lower limit than Dana and no erp:po:cancel, so that routing to a backup has to re-check authority rather than assume it transfers."
+  },
+  {
+    "user_id": "u-202",
+    "name": "Elena Ortiz",
+    "email": "elena.ortiz@northfield-mfg.example",
+    "role": "Quality Manager",
+    "manager_id": "u-100",
+    "backup_approver_id": "u-100",
+    "scopes": [
+      "erp:part:read", "erp:supplier:read",
+      "erp:production:read",
+      "erp:quality:read", "erp:quality:reallocate",
+      "mail:read", "mail:send", "calendar:read", "production:notify"
+    ],
+    "approval_limits": { "po_create_max_value": 0 },
+    "_seed_note": "Scenario B's user. No erp:po:create and no PO authority, which is why her shortage path has to hand off to purchasing rather than order the part herself."
+  },
+  {
+    "user_id": "u-301",
+    "name": "Sam Okafor",
+    "email": "sam.okafor@northfield-mfg.example",
+    "role": "Production Supervisor",
+    "manager_id": "u-100",
+    "backup_approver_id": "u-100",
+    "scopes": ["erp:part:read", "erp:production:read", "mail:read", "calendar:read"],
+    "approval_limits": { "po_create_max_value": 0 }
+  }
+]

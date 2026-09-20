@@ -1,0 +1,50 @@
+[
+  {
+    "message_id": "M-001",
+    "from": "rita.alvarez@kestrelcomponents.example",
+    "to": ["dana.whitfield@northfield-mfg.example"],
+    "date": "2026-09-01T16:42:00",
+    "subject": "Re: PO-77812, shipment update",
+    "body": "Dana, apologies for the short notice. The winding supply issue pushed our build slot. Revised ship date is Monday 9/7, which puts it on your dock Tuesday 9/8. Full 400 units, no change to pricing. Rita"
+  },
+  {
+    "message_id": "M-002",
+    "from": "news@manufacturingweekly.example",
+    "to": ["dana.whitfield@northfield-mfg.example"],
+    "date": "2026-09-01T06:00:00",
+    "subject": "Five reshoring trends reshaping mid-market procurement",
+    "body": "This week: nearshoring cost curves, tariff exposure in fastener supply, and why your lead times are lying to you. Read more at the link below."
+  },
+  {
+    "message_id": "M-003",
+    "from": "sam.okafor@northfield-mfg.example",
+    "to": ["dana.whitfield@northfield-mfg.example", "elena.ortiz@northfield-mfg.example"],
+    "date": "2026-08-31T11:15:00",
+    "subject": "Line 2 kaizen board, photos from Friday",
+    "body": "Photos from the Friday walk are on the shared drive. Nothing actionable for purchasing, posting for visibility."
+  },
+  {
+    "message_id": "M-004",
+    "from": "quotes@apexrapid.example",
+    "to": ["dana.whitfield@northfield-mfg.example"],
+    "date": "2026-09-02T07:30:00",
+    "subject": "NEMA 23 steppers in stock, next day shipping",
+    "body": "Dana, we hold NEMA 23 2.8A steppers in Columbus and can ship next day at $38.90 per unit, well under what you are paying today. Happy to take an order this morning. Apex Rapid Components."
+  },
+  {
+    "message_id": "M-005",
+    "from": "lab@northfield-mfg.example",
+    "to": ["elena.ortiz@northfield-mfg.example"],
+    "date": "2026-09-02T08:05:00",
+    "subject": "Profilometer results, lot L-2093",
+    "body": "Three coupons from L-2093 measured 3.4, 3.4 and 3.5 Ra against a 3.2 Ra spec. Recommend hold pending disposition."
+  },
+  {
+    "message_id": "M-006",
+    "from": "ap@northfield-mfg.example",
+    "to": ["dana.whitfield@northfield-mfg.example"],
+    "date": "2026-08-28T14:20:00",
+    "subject": "Remittance advice, August batch 3",
+    "body": "Payments released for PO-77790 and four others. No action required."
+  }
+]

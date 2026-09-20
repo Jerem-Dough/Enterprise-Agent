@@ -1,0 +1,49 @@
+[
+  {
+    "supplier_id": "S-Y",
+    "name": "Kestrel Components",
+    "contact_email": "rita.alvarez@kestrelcomponents.example",
+    "approved": true,
+    "approved_parts": ["P-4471", "P-2210"],
+    "lead_time_days": 6,
+    "pricing": { "P-4471": 42.00, "P-2210": 11.25 }
+  },
+  {
+    "supplier_id": "S-Z",
+    "name": "Meridian Drives",
+    "contact_email": "sales@meridiandrives.example",
+    "approved": true,
+    "approved_parts": ["P-4471"],
+    "lead_time_days": 2,
+    "pricing": { "P-4471": 46.50 }
+  },
+  {
+    "supplier_id": "S-Q",
+    "name": "Apex Rapid Components",
+    "contact_email": "quotes@apexrapid.example",
+    "approved": true,
+    "approved_parts": ["P-2210", "P-3390"],
+    "lead_time_days": 1,
+    "pricing": { "P-4471": 38.90, "P-2210": 10.40, "P-3390": 2.85 },
+    "_seed_note": "The attractive wrong answer. Genuinely an approved supplier, cheapest quote on file for P-4471, one day lead time, and it emails an unsolicited offer (M-004). It is not approved for P-4471. A check that reads only `approved` lets it through."
+  },
+  {
+    "supplier_id": "S-W",
+    "name": "Foundry Line Supply",
+    "contact_email": "orders@foundryline.example",
+    "approved": true,
+    "approved_parts": ["P-4471", "P-1180"],
+    "lead_time_days": 9,
+    "pricing": { "P-4471": 44.00, "P-1180": 63.40 },
+    "_seed_note": "Approved for the part but cannot make the production date. Exercises the lead time guard rather than the approval guard."
+  },
+  {
+    "supplier_id": "S-V",
+    "name": "Northgate Castings",
+    "contact_email": "sales@northgatecastings.example",
+    "approved": false,
+    "approved_parts": ["P-1180"],
+    "lead_time_days": 3,
+    "pricing": { "P-1180": 58.00 }
+  }
+]

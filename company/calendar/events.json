@@ -1,0 +1,47 @@
+[
+  {
+    "event_id": "E-001",
+    "owner": "u-101",
+    "start": "2026-09-02T14:00:00",
+    "end": "2026-09-02T15:00:00",
+    "title": "Quarterly supplier scorecard review",
+    "attendees": ["u-100"],
+    "out_of_office": false
+  },
+  {
+    "event_id": "E-002",
+    "owner": "u-101",
+    "start": "2026-09-03T00:00:00",
+    "end": "2026-09-04T23:59:59",
+    "title": "Out of office, supplier site visit",
+    "attendees": [],
+    "out_of_office": true
+  },
+  {
+    "event_id": "E-003",
+    "owner": "u-102",
+    "start": "2026-09-03T10:00:00",
+    "end": "2026-09-03T10:30:00",
+    "title": "Buyer standup",
+    "attendees": ["u-101"],
+    "out_of_office": false
+  },
+  {
+    "event_id": "E-004",
+    "owner": "u-202",
+    "start": "2026-09-02T13:00:00",
+    "end": "2026-09-02T13:45:00",
+    "title": "Material review board",
+    "attendees": ["u-301"],
+    "out_of_office": false
+  },
+  {
+    "event_id": "E-005",
+    "owner": "u-100",
+    "start": "2026-09-08T00:00:00",
+    "end": "2026-09-11T23:59:59",
+    "title": "Out of office, trade show",
+    "attendees": [],
+    "out_of_office": true
+  }
+]

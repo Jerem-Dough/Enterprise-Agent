@@ -1,0 +1,38 @@
+[
+  {
+    "part_id": "P-4471",
+    "description": "Stepper motor, NEMA 23, 2.8A",
+    "on_hand": 150,
+    "daily_usage": 30,
+    "safety_stock": 20,
+    "unit_cost": 42.00,
+    "lot_tracked": false
+  },
+  {
+    "part_id": "P-2210",
+    "description": "Timing belt, HTD 8M, 1200mm",
+    "on_hand": 600,
+    "daily_usage": 12,
+    "safety_stock": 60,
+    "unit_cost": 11.25,
+    "lot_tracked": false
+  },
+  {
+    "part_id": "P-1180",
+    "description": "Housing, cast aluminium, CX200",
+    "on_hand": 240,
+    "daily_usage": 8,
+    "safety_stock": 40,
+    "unit_cost": 63.40,
+    "lot_tracked": true
+  },
+  {
+    "part_id": "P-3390",
+    "description": "Bearing, sealed, 6205-2RS",
+    "on_hand": 1800,
+    "daily_usage": 45,
+    "safety_stock": 200,
+    "unit_cost": 3.10,
+    "lot_tracked": false
+  }
+]

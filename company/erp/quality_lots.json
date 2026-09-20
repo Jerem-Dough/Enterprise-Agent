@@ -1,0 +1,47 @@
+[
+  {
+    "lot_id": "L-2093",
+    "part_id": "P-1180",
+    "qty": 100,
+    "status": "hold",
+    "received_date": "2026-08-28",
+    "allocated_to": ["4820"],
+    "hold_reason": "Surface finish 3.4 Ra vs spec 3.2 Ra",
+    "hold_placed_by": "u-202",
+    "hold_placed_on": "2026-09-02"
+  },
+  {
+    "lot_id": "L-2101",
+    "part_id": "P-1180",
+    "qty": 90,
+    "status": "released",
+    "received_date": "2026-09-01",
+    "allocated_to": [],
+    "hold_reason": null,
+    "hold_placed_by": null,
+    "hold_placed_on": null
+  },
+  {
+    "lot_id": "L-2088",
+    "part_id": "P-1180",
+    "qty": 40,
+    "status": "released",
+    "received_date": "2026-08-20",
+    "allocated_to": ["4799"],
+    "hold_reason": null,
+    "hold_placed_by": null,
+    "hold_placed_on": null,
+    "_seed_note": "Released but both too small for order 4820 and already committed elsewhere. A lot search that filters only on status finds it."
+  },
+  {
+    "lot_id": "L-2077",
+    "part_id": "P-3390",
+    "qty": 500,
+    "status": "released",
+    "received_date": "2026-08-15",
+    "allocated_to": [],
+    "hold_reason": null,
+    "hold_placed_by": null,
+    "hold_placed_on": null
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "po_id": "PO-77812",
+    "part_id": "P-4471",
+    "supplier_id": "S-Y",
+    "qty": 400,
+    "unit_price": 42.00,
+    "total_value": 16800.00,
+    "ordered_date": "2026-08-26",
+    "promised_date": "2026-09-04",
+    "status": "open",
+    "created_by": "u-101"
+  },
+  {
+    "po_id": "PO-77790",
+    "part_id": "P-2210",
+    "supplier_id": "S-Q",
+    "qty": 300,
+    "unit_price": 11.25,
+    "total_value": 3375.00,
+    "ordered_date": "2026-08-20",
+    "promised_date": "2026-08-28",
+    "status": "received",
+    "created_by": "u-101"
+  },
+  {
+    "po_id": "PO-77801",
+    "part_id": "P-3390",
+    "supplier_id": "S-Q",
+    "qty": 2000,
+    "unit_price": 3.10,
+    "total_value": 6200.00,
+    "ordered_date": "2026-08-24",
+    "promised_date": "2026-09-10",
+    "status": "open",
+    "created_by": "u-102"
+  },
+  {
+    "po_id": "PO-77820",
+    "part_id": "P-1180",
+    "supplier_id": "S-W",
+    "qty": 150,
+    "unit_price": 63.40,
+    "total_value": 9510.00,
+    "ordered_date": "2026-08-31",
+    "promised_date": "2026-09-18",
+    "status": "open",
+    "created_by": "u-101"
+  }
+]

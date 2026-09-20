@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.db
+*.db-wal
+*.db-shm
+runs/
+!runs/.gitkeep
+.env
+_smoke/
+.pytest_cache/

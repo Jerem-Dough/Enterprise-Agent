@@ -1,0 +1,18 @@
+{
+  "version": "2026-09-01",
+  "approval": {
+    "require_approval_for_all_writes": true,
+    "end_of_day_hour": 17,
+    "route_to_backup_when_approver_out_next_day": true,
+    "escalate_above_limit_to": "manager"
+  },
+  "purchase_orders": {
+    "supplier_must_be_approved_for_part": true,
+    "max_unit_price_premium_pct": 25.0,
+    "min_days_margin_before_production_start": 0
+  },
+  "quality": {
+    "substitute_lot_must_be_released": true,
+    "substitute_lot_must_be_unallocated": true
+  }
+}
