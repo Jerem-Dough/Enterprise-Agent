@@ -398,6 +398,30 @@ class ScopedStore:
     def quality_lot(self, lot_id: str) -> dict | None:
         return self._store.document("quality_lots", lot_id)
 
+    # -- Directory ---------------------------------------------------------
+
+    def directory(self) -> dict[str, dict]:
+        """Names, roles and work addresses for every colleague.
+
+        Deliberately ungated. An employee can always look up who a colleague is
+        and how to email them, and a harness that pretended otherwise would
+        force tools to reach around the scoped handle to send a message, which
+        is a far worse outcome than exposing a staff list.
+
+        Equally deliberately, it returns four fields. Scopes, approval limits
+        and reporting lines are not in it. Those are authorization facts, they
+        belong to the gate, and the gate uses the privileged handle.
+        """
+        return {
+            row["user_id"]: {
+                "user_id": row["user_id"],
+                "name": row["name"],
+                "role": row["role"],
+                "email": row["email"],
+            }
+            for row in self._store.documents("users")
+        }
+
     # -- Mail and calendar -------------------------------------------------
     #
     # These take no user argument on purpose. The handle already knows whose
