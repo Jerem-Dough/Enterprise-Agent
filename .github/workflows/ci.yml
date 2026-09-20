@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - name: tests
+        run: python -m pytest -q
+      - name: the demo runs end to end without a key
+        run: python silo.py demo --scripted
+      - name: the audit chain verifies
+        run: |
+          python silo.py init --fresh
+          python silo.py verify
+      - name: no em dashes in prose
+        run: |
+          if grep -rn --include='*.md' --include='*.py' --include='*.json' -P '\x{2014}|\x{2013}' . ; then
+            echo "em dash or en dash found; see CLAUDE.md"
+            exit 1
+          fi
