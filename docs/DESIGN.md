@@ -506,9 +506,21 @@ emit `{}` and nothing else. The model chose `po_reroute` correctly and returned
 empty parameters, twice, including on a retry that handed it the validation
 error verbatim. It read like an instruction-following failure and it was a
 schema bug. `ProposedAction.params` had the identical flaw, found separately a
-few minutes later, which is the more useful half of the story: the same mistake
-in two places, because the fix for the first one was applied to the first one
-rather than to the pattern.
+few minutes later, and `ScheduleFollowUpParams.context` had it a third time,
+found only when a live plan scheduled a lot disposition check with no lot in
+it. That is the more useful half of the story: the same mistake in three
+places, because each fix was applied to the instance rather than to the
+pattern. The pattern is now a rule, in the next paragraph, and the last open
+`dict` a model is asked to fill is gone.
+
+The fix has its own limit, met immediately. The API compiles the output schema
+into a grammar and refuses one that is too large; the tagged union of every
+tool the user may run crossed that line once a nested context model and two
+regex `pattern` fields were in it. Regexes became `Literal` enums and nullable
+fields became plain strings, which is enough for a five-tool catalogue. It
+would not be enough for forty. At that scale the union has to become what the
+workflow parameters already are: a first call that names the tools, and a
+second, per action, against that tool's own schema.
 
 The general rule I would take to any project: **when a model persistently
 leaves a field empty, read the JSON schema it is decoding against before

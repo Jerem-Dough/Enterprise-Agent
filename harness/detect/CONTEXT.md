@@ -17,7 +17,7 @@ to know about. Detectors do not gather full context, reason, or propose.
 - A `SweepResult` of new, suppressed and skipped
 
 ## Human check
-Run `python silo.py detect` twice. The second run must produce nothing new. Then
+Run `python harmony.py detect` twice. The second run must produce nothing new. Then
 change a material fact in `company/` and run it again: it must produce one item.
 
 ## Adding one

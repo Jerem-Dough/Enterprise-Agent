@@ -30,7 +30,7 @@ def configure() -> None:
 def colour_enabled() -> bool:
     if os.environ.get("NO_COLOR"):
         return False
-    if os.environ.get("SILO_FORCE_COLOR"):
+    if os.environ.get("HARMONY_FORCE_COLOR"):
         return True
     return bool(getattr(sys.stdout, "isatty", lambda: False)())
 

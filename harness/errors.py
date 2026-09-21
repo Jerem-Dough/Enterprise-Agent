@@ -6,14 +6,14 @@ printed.
 """
 
 
-class SiloError(Exception):
+class HarmonyError(Exception):
     """Base for every failure the harness raises on purpose."""
 
     def as_dict(self) -> dict:
         return {"error": type(self).__name__, "message": str(self)}
 
 
-class ScopeDenied(SiloError):
+class ScopeDenied(HarmonyError):
     """A read or write was attempted without the principal's scope.
 
     Raised by the store, not by the caller's own check, so that forgetting to
@@ -36,7 +36,7 @@ class ScopeDenied(SiloError):
         }
 
 
-class PolicyViolation(SiloError):
+class PolicyViolation(HarmonyError):
     """A plan was well formed and permitted, and policy still refused it."""
 
     def __init__(self, rule: str, message: str, detail: dict | None = None) -> None:
@@ -48,7 +48,7 @@ class PolicyViolation(SiloError):
         return super().as_dict() | {"rule": self.rule, "detail": self.detail}
 
 
-class ApprovalRequired(SiloError):
+class ApprovalRequired(HarmonyError):
     """Execution stopped because no human has said yes yet."""
 
     def __init__(self, approval_id: str, approver_id: str) -> None:
@@ -57,7 +57,7 @@ class ApprovalRequired(SiloError):
         self.approver_id = approver_id
 
 
-class StepFailed(SiloError):
+class StepFailed(HarmonyError):
     """A workflow step failed. The engine decides whether to compensate."""
 
     def __init__(self, step_id: str, message: str, retryable: bool = False) -> None:
@@ -66,5 +66,5 @@ class StepFailed(SiloError):
         self.retryable = retryable
 
 
-class AuditTampered(SiloError):
+class AuditTampered(HarmonyError):
     """The audit hash chain did not verify."""

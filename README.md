@@ -1,4 +1,4 @@
-# Silo
+# Harmony Harness
 
 An extendable agent harness for enterprise work. Every employee gets an agent
 that notices things in their own systems, reasons about them, proposes an
@@ -17,47 +17,53 @@ python -m venv .venv
 .venv/Scripts/activate          # or source .venv/bin/activate
 pip install -r requirements.txt
 
-cp .env.example .env            # add your ANTHROPIC_API_KEY
-python silo.py demo
+python harmony.py demo
 ```
 
-One command. It runs Scenario A from an unprompted detection through approval
-and execution, advances the clock to Tuesday with the follow-up firing, runs
-Scenario B, walks six failure cases, and prints the audit trail reconstructed
-from the log alone.
+One command, no API key required. It runs Scenario A from an unprompted
+detection through approval and execution, advances the clock to Tuesday with
+the follow-up firing, runs Scenario B, walks six failure cases, and prints the
+audit trail reconstructed from the log alone.
 
-`python silo.py demo --scripted` runs the same story with a scripted model
-client and no API key, which is what CI uses.
+It needs no key because every model call the demo makes was recorded against
+Claude Opus 5 and committed to `cassettes/`. The default mode replays a
+recorded call when one exists. The model is real, the responses are the
+model's, and the run is reproducible.
 
-### Without a key
+### With a key
 
-The model is called in four places: the planner, a second call that fills the
-chosen workflow's parameters against its own schema, and two bounded steps
-inside the reroute workflow. Every call is recorded to `cassettes/` and
-replayed on later runs, so a repo with cassettes committed runs the full demo
-offline:
+To make live calls instead, copy `.env.example` to `.env` and add an
+`ANTHROPIC_API_KEY`. Then:
 
 ```bash
-SILO_LLM_MODE=replay python silo.py demo
+HARMONY_LLM_MODE=record python harmony.py demo    # re-record the cassettes
+HARMONY_LLM_MODE=live   python harmony.py demo    # call the API, keep the cassettes
 ```
 
-`SILO_LLM_MODE` is `auto` (replay if recorded, else call and record), `replay`,
-`record`, or `live`.
+`HARMONY_LLM_MODE` is `auto` (replay if recorded, else call and record; the
+default), `replay` (never call; a missing cassette is an error), `record`, or
+`live`. The model is called in four places: the planner, a second call that
+fills the chosen workflow's parameters against its own schema, and two bounded
+steps inside the reroute workflow.
+
+`python harmony.py demo --scripted` runs the same story against a scripted
+client with canned answers, including deliberately wrong ones. It exists for
+the failure cases and for CI, not as a substitute for the model.
 
 ### Step by step
 
 ```bash
-python silo.py init --fresh                 # seed the world
-python silo.py detect                       # run the detector sweep
-python silo.py run --all                    # gather, plan, gate, ask
-python silo.py approvals                    # what is waiting, and with whom
-python silo.py clock --to 2026-09-02T17:00  # end of day
-python silo.py tick                         # reroute stale approvals, fire due work
-python silo.py approve apr-xxxx --as u-102
-python silo.py execute apr-xxxx
-python silo.py audit run-xxxx               # the transcript
-python silo.py verify                       # check the hash chain
-python silo.py catalogue                    # every extension point
+python harmony.py init --fresh                 # seed the world
+python harmony.py detect                       # run the detector sweep
+python harmony.py run --all                    # gather, plan, gate, ask
+python harmony.py approvals                    # what is waiting, and with whom
+python harmony.py clock --to 2026-09-02T17:00  # end of day
+python harmony.py tick                         # reroute stale approvals, fire due work
+python harmony.py approve apr-xxxx --as u-102
+python harmony.py execute apr-xxxx
+python harmony.py audit run-xxxx               # the transcript
+python harmony.py verify                       # check the hash chain
+python harmony.py catalogue                    # every extension point
 ```
 
 ### Tests
@@ -65,7 +71,7 @@ python silo.py catalogue                    # every extension point
 ```bash
 python -m pytest
 ```
-77 tests against a real database. Covering the gate, trigger dedupe and workflow
+82 tests against a real database. Covering the gate, trigger dedupe and workflow
 resumption as the brief requires, plus approval routing and the audit log.
 
 ---
@@ -225,7 +231,7 @@ not offer, the step is not bounded.
 ## What I cut, and why
 
 **No UI.** The brief says a CLI is fine. What matters is that a human decision
-is a separate, recorded, authenticated event, and `silo.py approve --as u-102`
+is a separate, recorded, authenticated event, and `harmony.py approve --as u-102`
 is that. A web form would have been presentation over the same rows.
 
 **No real identity.** There is no SSO, no token exchange, no credential broker.
@@ -263,10 +269,37 @@ floor and silence would be the dangerous alternative.
 
 ---
 
+## Requirements checklist
+
+Every item in the brief, and where it is satisfied.
+
+| The brief asks for | Where |
+|---|---|
+| Detect without being prompted, on a schedule or event | `harness/detect/`, run by `harmony.py detect` and the first beat of the demo |
+| Context from ERP, inbox and calendar via distinct providers, scoped to the user | `harness/providers/erp.py`, `mail.py`, `calendar.py`, plus `quality.py` for Scenario B; all read through `ScopedStore` |
+| Reason to a recommendation and a proposed plan | `harness/plan/`, real model calls, recorded to `cassettes/` |
+| Gate: permissions, policy (PO thresholds, backup approver from calendar), human approval before any write | `harness/gate/` and `harness/gate/approvals.py`, enforced in code |
+| Execute through defined tools, idempotently, each step and rationale logged | `harness/tools/`, one runner, one idempotency ledger, one audit entry per call |
+| Follow up: a scheduled task that re-checks on Tuesday and re-enters the loop | `harness/schedule/`, `schedule_follow_up` tool, `Harness.tick()`; demo chapter 5 |
+| Explain: reconstruct everything from the audit log alone | `harness/audit.py`; `harmony.py audit <run-id>`; `test_audit.py::test_the_log_alone_answers_all_five_questions` |
+| Part 2: the reroute as a declared workflow, fixed order, bounded model steps, idempotent, compensating, resumable, versioned | `harness/workflows/po_reroute.py`; `test_workflow.py` |
+| Part 3: Scenario B with new quality data, detector, provider, tool, user with different scopes | `harness/detect/lot_hold.py`, `providers/quality.py`, `tools/quality.py`, `u-202`; kernel unchanged |
+| Systems and data with noise, a permission model, a tool catalogue, an advanceable clock | `company/`, `MODEL.md`; `harness/clock.py` |
+| A real LLM API | Claude Opus 5 through the official SDK, structured outputs |
+| `MODEL.md` | [`MODEL.md`](MODEL.md) |
+| README: how to run, how to add a tool / provider / detector / workflow, what was cut | This file |
+| Design doc: identity and authorization, long-term memory, scaling (required); connecting real systems, observability and evaluation (optional) | [`docs/DESIGN.md`](docs/DESIGN.md), all five, plus the workflow-engine question |
+| Tests covering the gate, trigger dedupe, workflow resumption at minimum | `tests/test_gate.py`, `test_dedupe.py`, `test_workflow.py`, plus approvals, audit and docs |
+| A recorded run of Scenario A: approval prompt, execution, audit trail | [`docs/RECORDED-RUN.md`](docs/RECORDED-RUN.md), generated from a real run |
+| One documented command | `python harmony.py demo`, no key needed |
+| Tell us what you cut and why | "What I cut, and why", above, and [`DECISIONS.md`](DECISIONS.md) |
+
+---
+
 ## Documents
 
-- [`DECISIONS.md`](DECISIONS.md): the open calls that need a human, and what I
-  chose not to build
+- [`DECISIONS.md`](DECISIONS.md): the calls that were not forced by the brief,
+  and why each went the way it did
 - [`MODEL.md`](MODEL.md): what I modelled, what I kept, changed, added and left
   out, and two deliberate deviations from the brief
 - [`docs/DESIGN.md`](docs/DESIGN.md): identity and authorization, long-term

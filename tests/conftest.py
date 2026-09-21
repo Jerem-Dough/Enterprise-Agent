@@ -30,7 +30,7 @@ def make_harness(tmp_path):
     def _make(**script) -> Harness:
         index = len(created)
         harness = Harness(
-            db_path=tmp_path / f"silo-{index}.db",
+            db_path=tmp_path / f"harmony-{index}.db",
             company_dir=ROOT / "company",
             runs_dir=tmp_path / f"runs-{index}",
             cassette_dir=tmp_path / "cassettes",
@@ -60,7 +60,7 @@ def reopen(tmp_path):
 
     def _reopen(index: int = 0, **script) -> Harness:
         return Harness(
-            db_path=tmp_path / f"silo-{index}.db",
+            db_path=tmp_path / f"harmony-{index}.db",
             company_dir=ROOT / "company",
             runs_dir=tmp_path / f"runs-{index}",
             cassette_dir=tmp_path / "cassettes",

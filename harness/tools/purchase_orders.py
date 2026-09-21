@@ -16,6 +16,7 @@ anything has been written.
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -101,8 +102,7 @@ class AmendPurchaseOrderParams(BaseModel):
     """Cancel an order outright, or cut its quantity."""
 
     po_id: str = Field(description="The order to change, e.g. PO-77812.")
-    action: str = Field(
-        pattern="^(cancel|reduce)$",
+    action: Literal["cancel", "reduce"] = Field(
         description="cancel to void the order, reduce to lower its quantity.",
     )
     new_qty: int | None = Field(

@@ -1,4 +1,4 @@
-"""The whole story in one command: `python silo.py demo`.
+"""The whole story in one command: `python harmony.py demo`.
 
 Scenario A from an unprompted detection through approval and execution, the
 clock advanced to Tuesday with the follow-up firing, Scenario B, then the
@@ -85,7 +85,7 @@ def _harness(name: str, *, scripted: bool = False, fresh: bool = True,
         shutil.rmtree(root, ignore_errors=True)
     root.mkdir(parents=True, exist_ok=True)
     harness = Harness(
-        db_path=root / "silo.db",
+        db_path=root / "harmony.db",
         company_dir=ROOT / "company",
         runs_dir=root / "runs",
         cassette_dir=ROOT / "cassettes",
@@ -236,14 +236,31 @@ def follow_up(harness: Harness, state: dict) -> None:
             continue
         for fired in tick["fired_tasks"]:
             outcome = fired["outcome"]
-            if outcome["status"] == "arrived":
-                good(f"{outcome['po_id']} has arrived")
+            status = outcome.get("status")
+            if fired["kind"] == "po_arrival":
+                if status == "arrived":
+                    good(f"{outcome['po_id']} has arrived")
+                else:
+                    fail(f"{outcome['po_id']} is still open on {outcome['checked_on']}")
+                    line(f"  re-entered the loop as attention item "
+                         f"{outcome['attention_item']}")
+                    line(f"  raised a new item: {outcome['raised_new_item']}"
+                         f"   next check {outcome['next_check']}")
+            elif fired["kind"] == "lot_disposition":
+                # Scheduled by Scenario B's agent, not by the reroute. Two
+                # different follow-ups from two different people share the
+                # same queue, and each fires as its own user.
+                if status == "resolved":
+                    good(f"lot {outcome['lot_id']} is now {outcome['lot_status']}")
+                elif status == "still_held":
+                    fail(f"lot {outcome['lot_id']} is still on hold on "
+                         f"{outcome['checked_on']}")
+                    line(f"  raised a new item: {outcome['raised_new_item']}"
+                         f"   next check {outcome['next_check']}")
+                else:
+                    flag(f"lot disposition check: {outcome.get('reason', status)}")
             else:
-                fail(f"{outcome['po_id']} is still open on {outcome['checked_on']}")
-                line(f"  re-entered the loop as attention item "
-                     f"{outcome['attention_item']}")
-                line(f"  raised a new item: {outcome['raised_new_item']}"
-                     f"   next check {outcome['next_check']}")
+                dim(f"  {fired['kind']}: {status}")
 
     dim("\n  The dedupe key is the order, not the day. One unresolved late")
     dim("  shipment is one attention item across all three checks, not three.")
@@ -410,7 +427,7 @@ def audit_trail(harness: Harness, state: dict) -> None:
 
 def run(args) -> int:
     mode = "scripted" if getattr(args, "scripted", False) else "live or replayed"
-    print(f"\n{BOLD}Silo, an extendable agent harness for enterprise work{RESET}")
+    print(f"\n{BOLD}Harmony Harness, an extendable agent harness for enterprise work{RESET}")
     dim(f"model calls: {mode}")
 
     harness = _harness("main", scripted=getattr(args, "scripted", False))
@@ -429,7 +446,7 @@ def run(args) -> int:
         harness.close()
 
     print(f"\n\n{BOLD}{GREEN}{'━' * 78}{RESET}")
-    print(f"{BOLD}{GREEN} Done. Artifacts in _demo/main/runs/, audit in _demo/main/silo.db{RESET}")
+    print(f"{BOLD}{GREEN} Done. Artifacts in _demo/main/runs/, audit in _demo/main/harmony.db{RESET}")
     print(f"{BOLD}{GREEN}{'━' * 78}{RESET}\n")
     return 0
 

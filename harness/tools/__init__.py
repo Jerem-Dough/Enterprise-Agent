@@ -22,7 +22,7 @@ from pydantic import BaseModel, ValidationError
 
 from ..audit import AuditLog
 from ..clock import Clock
-from ..errors import ScopeDenied, SiloError
+from ..errors import ScopeDenied, HarmonyError
 from ..schedule import Scheduler
 from ..store import ScopedStore
 
@@ -261,7 +261,7 @@ class ToolRunner:
                         "output": output,
                     },
                 )
-        except SiloError as error:
+        except HarmonyError as error:
             self._audit.record(
                 phase="execute", action="tool.failed", actor=principal.user_id,
                 run_id=run_id, entity="tool", entity_id=name,

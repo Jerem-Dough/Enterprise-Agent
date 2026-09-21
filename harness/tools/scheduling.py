@@ -15,26 +15,42 @@ user id, never a capability.
 from __future__ import annotations
 
 from datetime import datetime, time
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
 from . import ToolContext, tool
 
 
+class FollowUpContext(BaseModel):
+    """The identifiers a deferred check needs, as named fields.
+
+    This was an open `dict`, and a live plan scheduled a lot disposition check
+    with `context: {}`: not carelessness, but a schema with no properties for
+    constrained decoding to fill. The third time this shape bit, in the third
+    place. Named optional fields give the model somewhere to put the answer.
+    """
+
+    po_id: str = Field(default="", description="Purchase order, e.g. PO-77812, or empty.")
+    part_id: str = Field(default="", description="Part, e.g. P-4471, or empty.")
+    prod_order_id: str = Field(default="", description="Production order, e.g. 4812, or empty.")
+    lot_id: str = Field(default="", description="Quality lot, e.g. L-2093, or empty.")
+    needed_by: str = Field(default="", description="ISO date the material is required, or empty.")
+
+
 class ScheduleFollowUpParams(BaseModel):
     """Come back and check that something actually happened."""
 
-    check: str = Field(
-        pattern="^(po_arrival|lot_disposition)$",
+    check: Literal["po_arrival", "lot_disposition"] = Field(
         description="Which follow up routine to run when this fires.",
     )
     due_date: str = Field(description="ISO date to run the check, e.g. 2026-09-08.")
     subject_user: str = Field(
         description="The user the follow up runs as. Permissions are resolved then, not now."
     )
-    context: dict = Field(
-        default_factory=dict,
-        description="Identifiers the check needs, e.g. po_id and prod_order_id.",
+    context: FollowUpContext = Field(
+        default_factory=FollowUpContext,
+        description="The identifiers the check needs. Fill in every one that applies.",
     )
     reason: str = Field(min_length=10, description="Why this check is being scheduled.")
 
@@ -68,14 +84,15 @@ def schedule_follow_up(context: ToolContext, params: ScheduleFollowUpParams) -> 
 
     # The dedupe key is the check and its subject, so a workflow that resumes
     # and replays this step reuses the task rather than queueing a second one.
-    identifiers = ":".join(f"{k}={v}" for k, v in sorted(params.context.items()))
+    identifiers_dict = {k: v for k, v in params.context.model_dump().items() if v}
+    identifiers = ":".join(f"{k}={v}" for k, v in sorted(identifiers_dict.items()))
     task = context.scheduler.schedule(
         kind=params.check,
         due_at=due_at,
         payload={
             "check": params.check,
             "subject_user": params.subject_user,
-            "context": params.context,
+            "context": identifiers_dict,
             "reason": params.reason,
             "scheduled_by_run": context.run_id,
         },

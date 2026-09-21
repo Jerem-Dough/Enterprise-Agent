@@ -1,18 +1,18 @@
 {
   "key": "workflow.select_supplier.a7ff9fba3c6bd7cb",
   "purpose": "workflow.select_supplier",
-  "model": "claude-fable-5",
+  "model": "claude-opus-5",
   "schema": "SupplierChoice",
   "system": "You are choosing a replacement supplier inside a fixed purchasing workflow.\n\nYou will be given a list of candidates. That list has already been filtered to\nsuppliers who are approved for this specific part. You may choose only from it.\n\nReturn the supplier id exactly as it appears in the list, for example S-Z. Do\nnot include the supplier name in that field; it belongs in your justification.\n\nChoose on whether the lead time meets the date the material is needed, first,\nand on unit price second. A cheaper supplier that arrives too late is the wrong\nanswer. Say which consideration decided it.\n",
   "user": "Part: P-4471\nQuantity: 120\nNeeded on the dock by: 2026-09-07\nToday: 2026-09-02\nPlanner's suggestion (not binding): S-Z\n\nCandidates:\n  - S-Z Meridian Drives: lead time 2 days, unit price 46.5\n  - S-W Foundry Line Supply: lead time 9 days, unit price 44.0",
   "output": {
     "supplier_id": "S-Z",
-    "justification": "Lead time decided it: S-Z's 2-day lead time delivers by 2026-09-04, meeting the 2026-09-07 dock date, while S-W's 9-day lead time would arrive around 2026-09-11, too late despite its lower unit price."
+    "justification": "Lead time decided it: S-Z's 2-day lead time puts material on the dock around 2026-09-04, comfortably ahead of the 2026-09-07 need date, while S-W's 9-day lead time would arrive about 2026-09-11, several days late despite the $2.50 lower unit price."
   },
   "usage": {
-    "input_tokens": 131,
-    "output_tokens": 157,
-    "cache_read_input_tokens": 537,
+    "input_tokens": 132,
+    "output_tokens": 165,
+    "cache_read_input_tokens": 0,
     "attempts": 1
   },
   "replayed": false

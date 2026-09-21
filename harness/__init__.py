@@ -1,4 +1,4 @@
-"""Silo: an extendable agent harness for enterprise work.
+"""Harmony Harness: an extendable agent harness for enterprise work.
 
 The kernel is deliberately thin. It owns the loop (detect, gather, plan, gate,
 execute, follow up) and nothing about purchasing, quality, or any other domain.

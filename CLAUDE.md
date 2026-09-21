@@ -1,4 +1,4 @@
-# Silo: where things are
+# Harmony Harness: where things are
 
 An extendable agent harness for enterprise work. This file routes; it holds no
 content. Every folder states its own purpose in its `CONTEXT.md`.
@@ -7,16 +7,16 @@ content. Every folder states its own purpose in its `CONTEXT.md`.
 
 | Task | Go to |
 |---|---|
-| Run the whole story | `python silo.py demo`, or `demo.py` |
+| Run the whole story | `python harmony.py demo`, or `demo.py` |
 | Understand the loop | `harness/CONTEXT.md`, then `harness/kernel.py` |
 | Understand the modelled world | `MODEL.md`, then `company/CONTEXT.md` |
 | Add a provider, tool, detector or workflow | `README.md`, "Extending it" |
 | Change what the agent may do | `harness/gate/CONTEXT.md` |
 | Change a threshold or a rule | `company/policy.json` |
 | Change who may do what | `company/users.json` |
-| Understand a past run | `runs/<run-id>/`, or `python silo.py audit <run-id>` |
+| Understand a past run | `runs/<run-id>/`, or `python harmony.py audit <run-id>` |
 | The parts I did not build | `docs/DESIGN.md` |
-| See every extension point | `python silo.py catalogue` |
+| See every extension point | `python harmony.py catalogue` |
 
 ## The shape
 

@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Silo command line.
+"""Harmony Harness command line.
 
-    python silo.py demo             the whole story, end to end
-    python silo.py init             seed the world
-    python silo.py detect           run the detector sweep
-    python silo.py run <item|--all> take attention items to a decision
-    python silo.py approvals        what is waiting, and with whom
-    python silo.py approve <id> --as <user>
-    python silo.py reject  <id> --as <user> [--note "..."]
-    python silo.py execute <approval-id> [--stop-before <step>]
-    python silo.py resume <instance-id> --as <user>
-    python silo.py tick             reroute stale approvals, fire due work
-    python silo.py clock [--to DATE | --days N]
-    python silo.py audit [<run-id>]
-    python silo.py verify           check the audit hash chain
-    python silo.py catalogue        tools, providers, detectors, workflows
+    python harmony.py demo             the whole story, end to end
+    python harmony.py init             seed the world
+    python harmony.py detect           run the detector sweep
+    python harmony.py run <item|--all> take attention items to a decision
+    python harmony.py approvals        what is waiting, and with whom
+    python harmony.py approve <id> --as <user>
+    python harmony.py reject  <id> --as <user> [--note "..."]
+    python harmony.py execute <approval-id> [--stop-before <step>]
+    python harmony.py resume <instance-id> --as <user>
+    python harmony.py tick             reroute stale approvals, fire due work
+    python harmony.py clock [--to DATE | --days N]
+    python harmony.py audit [<run-id>]
+    python harmony.py verify           check the audit hash chain
+    python harmony.py catalogue        tools, providers, detectors, workflows
 
 No UI, by design. The approval step is a command, which is the brief's "a CLI
 is fine" taken literally: what matters is that a human decision is a separate,
@@ -296,8 +296,8 @@ def cmd_catalogue(args) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="silo", description=__doc__)
-    parser.add_argument("--db", default=str(ROOT / "silo.db"))
+    parser = argparse.ArgumentParser(prog="harmony", description=__doc__)
+    parser.add_argument("--db", default=str(ROOT / "harmony.db"))
     parser.add_argument("--runs", default=str(ROOT / "runs"))
     sub = parser.add_subparsers(dest="command", required=True)
 

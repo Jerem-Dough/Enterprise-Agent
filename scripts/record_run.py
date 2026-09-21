@@ -99,7 +99,7 @@ def main() -> int:
     workdir.mkdir(parents=True)
 
     harness = Harness(
-        db_path=workdir / "silo.db",
+        db_path=workdir / "harmony.db",
         company_dir=ROOT / "company",
         runs_dir=workdir / "runs",
         cassette_dir=ROOT / "cassettes",

@@ -64,8 +64,8 @@ class Principal:
 
 SYSTEM = Principal(
     user_id="system",
-    name="Silo scheduler",
-    email="silo@northfield-mfg.example",
+    name="Harmony scheduler",
+    email="harmony@northfield-mfg.example",
     role="System",
     scopes=frozenset(),
     approval_limits={},
@@ -76,6 +76,6 @@ Detectors and the scheduler run as SYSTEM. It deliberately holds no scopes: it
 can notice that something needs attention and it can wake a run up, and it
 cannot read a user's mail or write to the ERP. Every read and write in a run is
 attributed to the employee the run is for, never to the machinery that started
-it. This is the equivalent of Torus's `service_session`, named and kept narrow
-rather than convenient.
+it. The one privileged path in the system, named and kept narrow rather than
+convenient.
 """

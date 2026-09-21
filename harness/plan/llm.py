@@ -9,7 +9,7 @@ a conclusion.
 Cassettes are keyed on the *situation*, not the prompt bytes, because prompts
 carry generated ids that differ between runs. The full prompt is stored anyway.
 
-`SILO_LLM_MODE`: auto (replay if recorded, else call and record), live, record,
+`HARMONY_LLM_MODE`: auto (replay if recorded, else call and record), live, record,
 replay. See harness/plan/CONTEXT.md.
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 
-DEFAULT_MODEL = "claude-fable-5"
+DEFAULT_MODEL = "claude-opus-5"
 DEFAULT_MAX_TOKENS = 8000
 
 
@@ -226,7 +226,7 @@ class CassetteClient(LLMClient):
         live: LLMClient | None = None,
     ) -> None:
         if mode not in ("auto", "live", "record", "replay"):
-            raise ValueError(f"unknown SILO_LLM_MODE: {mode!r}")
+            raise ValueError(f"unknown HARMONY_LLM_MODE: {mode!r}")
         self.store = store
         self.mode = mode
         self._live = live
@@ -257,8 +257,8 @@ class CassetteClient(LLMClient):
 
         if self.mode == "replay":
             raise ModelUnavailable(
-                f"no cassette for {key} and SILO_LLM_MODE=replay. "
-                f"Run once with SILO_LLM_MODE=record to create it."
+                f"no cassette for {key} and HARMONY_LLM_MODE=replay. "
+                f"Run once with HARMONY_LLM_MODE=record to create it."
             )
 
         parsed, call = self._live_client().structured(
@@ -294,5 +294,5 @@ def build_client(
     """The client the CLI and the tests both use."""
     load_env(Path(__file__).resolve().parents[2] / ".env")
     return CassetteClient(
-        CassetteStore(cassette_dir), mode=mode or os.environ.get("SILO_LLM_MODE", "auto")
+        CassetteStore(cassette_dir), mode=mode or os.environ.get("HARMONY_LLM_MODE", "auto")
     )

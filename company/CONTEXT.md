@@ -18,7 +18,7 @@ store, never back here. To reset the world, delete the store and re-init.
 3. Rows land in the store. From that point the store is the source of truth.
 
 ## Outputs
-- A populated SQLite store at `silo.db` (path configurable).
+- A populated SQLite store at `harmony.db` (path configurable).
 
 ## Human check
 Open `erp/suppliers.json` and read the two `_seed_note` fields. Those are the wrong answers

@@ -10,7 +10,7 @@ scope it needs. Mail and calendar reads filter on the principal the handle
 holds rather than on an argument, so there is no call that reaches another
 person's inbox, and nothing widens a scoped handle back into a privileged one.
 
-The point, borrowed from a system where Postgres RLS enforced it: a forgotten
+The point, the same one row-level security makes in a database: a forgotten
 check should return nothing, not everything.
 
 SQLite rather than the JSON files because deferred work and workflow instances

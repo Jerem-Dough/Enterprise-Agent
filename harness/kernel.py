@@ -22,6 +22,7 @@ from pathlib import Path
 from . import detect, providers, tools, workflows
 from .audit import AuditLog
 from .clock import Clock
+from .errors import ScopeDenied
 from .gate import Gate
 from .gate.approvals import Approvals
 from .memory import Memory
@@ -78,7 +79,7 @@ class Harness:
 
     def __init__(
         self,
-        db_path: str | Path = "silo.db",
+        db_path: str | Path = "harmony.db",
         company_dir: str | Path = "company",
         runs_dir: str | Path = "runs",
         cassette_dir: str | Path = "cassettes",
@@ -416,6 +417,8 @@ class Harness:
 
         if task["kind"] == "po_arrival":
             return self._check_po_arrival(task, principal, scoped)
+        if task["kind"] == "lot_disposition":
+            return self._check_lot_disposition(task, principal, scoped)
         return {"status": "skipped", "reason": f"no handler for {task['kind']}"}
 
     def _check_po_arrival(self, task, principal, scoped) -> dict:
@@ -500,6 +503,85 @@ class Harness:
             "raised_new_item": is_new,
             "next_check": next_check.isoformat(),
         }
+
+    def _check_lot_disposition(self, task, principal, scoped) -> dict:
+        """Has the held lot been dispositioned yet?
+
+        Sibling of the arrival check. A lot still on hold when the check fires
+        raises one attention item for the quality manager, keyed on the lot so
+        repeated checks do not repeat the alert, and re-checks the next working
+        day. A lot that has left hold, whether released or scrapped, closes it.
+        """
+        context = task["payload"]["context"]
+        lot_id = context.get("lot_id") or context.get("from_lot")
+        today = self.clock.today()
+        try:
+            lot = scoped.quality_lot(lot_id) if lot_id else None
+        except ScopeDenied as denied:
+            # The check runs as the user it was queued for, with the scopes
+            # they hold now. Nothing about the queue grants them more.
+            self.audit.record(
+                phase="followup", action="followup.denied", actor=principal.user_id,
+                entity="scheduled_task", entity_id=task["id"], detail=denied.as_dict(),
+            )
+            lot = None
+
+        if lot is None:
+            return {"status": "error", "kind": "lot_disposition",
+                    "reason": f"lot {lot_id!r} is not readable or does not exist"}
+
+        resolved = lot.get("status") != "hold"
+        self.audit.record(
+            phase="followup", action="followup.checked", actor=principal.user_id,
+            entity="quality_lot", entity_id=lot_id,
+            detail={"status": lot.get("status"), "resolved": resolved,
+                    "checked_on": today.isoformat(),
+                    "hold_reason": lot.get("hold_reason")},
+        )
+        if resolved:
+            return {"status": "resolved", "kind": "lot_disposition", "lot_id": lot_id,
+                    "lot_status": lot.get("status"), "checked_on": today.isoformat()}
+
+        item = detect.AttentionItem(
+            detector="lot_disposition_follow_up",
+            subject_user=principal.user_id,
+            dedupe_key=f"lot_undispositioned:{lot_id}",
+            summary=(
+                f"Lot {lot_id} of {lot.get('part_id')} has been on hold since "
+                f"{lot.get('hold_placed_on')} ({lot.get('hold_reason')}) and still "
+                f"has no disposition on {today.isoformat()}."
+            ),
+            focus={"part_id": lot.get("part_id"), "lot_id": lot_id,
+                   "prod_order_id": context.get("prod_order_id"),
+                   "additional_approvers": []},
+            evidence=[
+                detect.ref("erp", "quality_lot", lot_id,
+                           f"on hold since {lot.get('hold_placed_on')}"),
+                detect.ref("harness", "scheduled_task", task["id"],
+                           "disposition check scheduled by an earlier run"),
+            ],
+        )
+        item, is_new = detect.persist(self.store, self.clock, item)
+
+        next_check = _next_working_day(today)
+        queued = self.scheduler.schedule(
+            kind="lot_disposition",
+            due_at=f"{next_check.isoformat()}T09:00:00",
+            payload=task["payload"],
+            dedupe_key=f"lot_disposition:{next_check.isoformat()}:lot_id={lot_id}",
+            actor=principal.user_id,
+        )
+        self.audit.record(
+            phase="followup", action="followup.reentered", actor="system",
+            entity="attention_item", entity_id=item.id,
+            detail={"lot_id": lot_id, "raised_new_item": is_new,
+                    "dedupe_key": item.dedupe_key,
+                    "next_check": next_check.isoformat(),
+                    "next_check_task": queued["id"]},
+        )
+        return {"status": "still_held", "kind": "lot_disposition", "lot_id": lot_id,
+                "checked_on": today.isoformat(), "attention_item": item.id,
+                "raised_new_item": is_new, "next_check": next_check.isoformat()}
 
     # -- bookkeeping -------------------------------------------------------
 

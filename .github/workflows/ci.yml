@@ -17,14 +17,14 @@ jobs:
       - name: tests
         run: python -m pytest -q
       - name: the demo runs end to end without a key
-        run: python silo.py demo --scripted
+        run: python harmony.py demo --scripted
       - name: the audit chain verifies
         run: |
-          python silo.py init --fresh
-          python silo.py verify
+          python harmony.py init --fresh
+          python harmony.py verify
       - name: house style
         run: python scripts/check_style.py
       - name: the demo replays from committed cassettes, with no key
         env:
-          SILO_LLM_MODE: replay
-        run: python silo.py demo
+          HARMONY_LLM_MODE: replay
+        run: python harmony.py demo

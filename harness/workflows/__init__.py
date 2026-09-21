@@ -27,14 +27,14 @@ from pydantic import BaseModel
 
 from ..audit import AuditLog
 from ..clock import Clock
-from ..errors import SiloError
+from ..errors import HarmonyError
 from ..plan.llm import LLMClient
 from ..runlog import RunFolder
 from ..store import ScopedStore, Store, new_id
 from ..tools import ToolRunner, get as get_tool
 
 
-class WorkflowKilled(SiloError):
+class WorkflowKilled(HarmonyError):
     """Raised by the injected stop point that simulates a crash."""
 
 

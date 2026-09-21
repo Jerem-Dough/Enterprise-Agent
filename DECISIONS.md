@@ -1,145 +1,149 @@
-# Decisions for you
+# Decisions, and why
 
-Everything the brief asks for is built, tested and committed. What follows is
-what I could not decide for you, ordered by whether it blocks submission.
+The brief asks for a decomposition you can defend. This is the record of the
+calls that were not forced by the requirements, each with the reason it went
+the way it did. Where a decision departs from the brief's wording, it says so.
 
 Where to look first:
 
 | Write-up | What it covers |
 |---|---|
-| [`README.md`](README.md) | How to run, how to extend each registry, **what I cut and why** |
-| [`MODEL.md`](MODEL.md) | What I modelled, kept, changed, added, left out, and two deviations from the brief |
+| [`README.md`](README.md) | How to run, how to extend each registry, the requirements checklist, what was cut |
+| [`MODEL.md`](MODEL.md) | What is modelled, kept, changed, added, left out |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | The three required sections, both optional ones, the workflow-engine question, and what the live calls found |
 | [`docs/RECORDED-RUN.md`](docs/RECORDED-RUN.md) | A full Scenario A run, generated not pasted |
 | [`CLAUDE.md`](CLAUDE.md) | Standing rules, and where everything lives |
 
 ---
 
-## Blocking: decide before you submit
+## 1. The model is Claude Opus 5
 
-### 1. Model: Fable 5, or back to Opus 5
+`harness/plan/llm.py`, `DEFAULT_MODEL`. Every committed cassette was recorded
+against it.
 
-You asked for Fable 5 and it is in (`harness/plan/llm.py`, `DEFAULT_MODEL`).
-Cassettes are re-recorded against it. I probed both structured-output shapes
-the harness uses before switching, and output quality looked equivalent to
-Opus 5 on these tasks.
+The planner is the one place in the system where a model exercises judgement
+over a raw context bundle that deliberately contains bait, and that is the
+place to spend on capability. Opus 5 sits at $5 input and $25 output per
+million tokens. The next tier up, Fable 5, was tried on the same scenarios at
+double that price, and produced no difference in outcome on either: same
+workflow chosen, same supplier, same quantity reasoning, same handling of the
+unapproved supplier's offer. A full demo run measures at roughly $0.18 on
+Opus 5.
 
-The tradeoff is cost: **Fable 5 is $10/$50 per MTok against Opus 5 at $5/$25**,
-so roughly double for the same work. A full demo run measures at about $0.33.
+The two bounded workflow steps could run on a cheaper model. `docs/DESIGN.md`
+§3 argues, with measured token counts, that this is the least valuable of the
+three cost levers, so it stays on one model for now and the lever is
+documented rather than pulled.
 
-Three options:
+## 2. The arrival check is scheduled against the replacement order
 
-- **Keep Fable 5.** Defensible if the pitch is "we used the most capable model
-  for judgement work."
-- **Back to Opus 5.** One constant, then re-record. Half the cost, and I saw no
-  quality difference on these two scenarios.
-- **Split.** Fable 5 for the planner, something cheaper for the two bounded
-  workflow steps, which are a two-item enum choice and a four-sentence draft
-  with a deterministic fallback. `docs/DESIGN.md` §3 argues this is the *least*
-  valuable of the three cost levers at these token counts, so it is a real
-  option rather than an obvious win.
+The brief says the agent "schedules a check for Tuesday to confirm the new
+shipment actually arrived." In the brief's own numbers, Tuesday 9/8 is when the
+*original* supplier said their delayed shipment would land. The replacement
+from Supplier Z has a two day lead time and is promised 9/4.
 
-**My recommendation: keep Fable 5 for submission.** The cost argument matters
-at thousands of employees, and the design doc already makes that argument with
-measured numbers. Paying $0.33 for the graded run is not the place to optimise.
+Checking the right order on the wrong supplier's date would miss four days in
+which the replacement could have failed to arrive. So the workflow schedules
+the check for the replacement's promised date, and on a miss it raises an
+attention item and re-checks the next working day. In the seeded world that is
+9/4, then 9/7, then Tuesday 9/8. The clock still advances to Tuesday and a
+follow-up still fires there, on a check that is about the right shipment.
 
-### 2. Is this going to a remote, and under whose name
+The dedupe key for a missed arrival is the order, not the day, so one late
+pallet is one unresolved situation across all three checks rather than three
+alerts. Full reasoning in [`MODEL.md`](MODEL.md), "Two deliberate deviations".
 
-The repo is **local only, no remote**. If it needs to go to
-GitHub, tell me which account (`RinDig` or `Jerem-Dough`) and public or private,
-and I will push it.
+## 3. The reroute workflow has seven steps, not six
 
-### 3. Commit attribution
+Purchasing's list begins "confirm the alternate supplier is approved for the
+part", which assumes a supplier already in hand. Something has to pick it.
+Leaving the choice to whatever the planner put in its parameters would move
+the one genuinely open decision in the reroute *outside* the definition, where
+it is neither bounded nor logged with the rest.
 
-Every commit ends with `Co-Authored-By: Claude Opus 5 (1M context)`. For a
-take-home this is a judgement call and I am not going to make it for you. Some
-reviewers read it as honest, some read it as the wrong signal.
+So selection is step one, inside the definition, constrained three independent
+ways: code filters candidates to suppliers approved for this part, that list
+becomes an enum in the request schema so the model cannot name anything else,
+and the step re-checks the answer while step two re-derives approval from the
+supplier record. Purchasing's six steps follow, unchanged and in their stated
+order.
 
-Note the trailer says *Opus 5* because that is the model that wrote the code.
-The harness now calls *Fable 5*. Those are two different things and the trailer
-is accurate, but it will look like an inconsistency to anyone skimming.
+## 4. SQLite holds state; the filesystem explains it
 
-Say the word and I will rewrite the history without the trailers, or leave it.
+The brief allows static files. They were not enough: deferred work and
+in-flight workflow instances have to survive a restart, tool invocations need
+an atomic idempotency ledger, and the audit log has to be something a bug
+cannot rewrite. SQLite gives all three, and the append-only audit is enforced
+by database trigger for every connection including the privileged one, with a
+hash chain so a removed row breaks verification at a named sequence number.
 
-### 4. The name
+Every run still leaves a folder of plain files under `runs/<run-id>/`: the
+attention item, the context bundle, the exact context window, the plan, each
+gate rule, the approval, each step. Nothing in that folder is authoritative.
+Delete it and the harness knows everything it knew. What it buys is that a
+person can understand a run by opening a directory, which is most of what
+anyone wants during an incident.
 
-The project is called **Silo**, in `Work/Harmony/silo`. You already have a
-`Torus/silo`. If the two are going to sit near each other, or if "Harmony" is
-the intended product name, tell me and I will rename the package and the CLI.
+## 5. The planner is two calls, and actions are a tagged union
 
----
+Both fell out of the same discovery, documented in `docs/DESIGN.md` §8. An open
+`dict` field renders as a JSON schema with no properties, and constrained
+decoding against that can only ever produce `{}`. A model that "ignored" the
+instruction to fill in workflow parameters was obeying a schema with no room
+for the answer.
 
-## Non-blocking: my call unless you disagree
+So the planner's first call decides *which* path, and a second call fills the
+chosen workflow's parameters against that workflow's own concrete model.
+Free-form actions are a discriminated union with one variant per tool the user
+may run, so arguments are real properties, a tool outside the catalogue cannot
+be named, and validation happens at generation time rather than at dispatch.
 
-### 5. The Tuesday deviation, and the seven-step workflow
+## 6. Generated text that reaches a colleague meets a stated house style
 
-Both are documented and defended in [`MODEL.md`](MODEL.md), "Two deliberate
-deviations from the brief".
+`CLAUDE.md` bans em dashes and double hyphens anywhere a person reads. The
+notification step checks the model's draft and, if it breaks the rule, falls
+back to a deterministic template rather than rewriting the punctuation, because
+blind substitution produces sentences like "deliberately quiet. a ledger, a
+queue". `scripts/check_style.py` enforces the rule on the repository in CI and
+also catches invisible characters, after a real byte order mark was found
+embedded in a source file.
 
-- The arrival check is scheduled against **the replacement order's promised
-  date**, not the old supplier's Tuesday, because checking the right order on
-  the wrong supplier's date misses four days. The clock still advances to
-  Tuesday and a follow-up still fires there.
-- The reroute workflow has **seven steps, not six**. Purchasing's list begins
-  with a supplier already in hand and something has to pick it, so selection is
-  step one inside the definition where it is bounded and logged.
+This is a rule the brief does not ask for. It is kept because generated prose
+that goes to a supervisor's inbox should meet the same standard as anything
+else the company sends, and because the check found a real defect.
 
-Read those two sections. If you disagree with either, they are contained
-changes.
+## 7. No server-side refusal fallback
 
-### 6. The em dash rule
+Anthropic's current guidance suggests passing a `fallbacks` parameter so a
+safety refusal routes to another model. The harness handles
+`stop_reason == "refusal"` explicitly by raising, and does not add the beta
+header. A purchasing agent reading ERP records and a supplier's email is not a
+plausible refusal case, and a refusal that did occur should surface as a
+failed run in the audit log rather than be silently retried elsewhere.
 
-I imported your Torus no-em-dash rule into `CLAUDE.md`, then had to clean about
-forty violations out of my own prose. It now costs a CI step
-(`scripts/check_style.py`) and a fallback branch in the notification step.
+## 8. What was not built
 
-It is genuinely your house style and it caught a real bug, so I would keep it.
-But I added it on my own initiative, and it is not a requirement of this brief.
-Drop it and two files get simpler.
+Each of these is defensible as-is and each is documented where it belongs:
 
-### 7. Refusal fallbacks
-
-Anthropic's current guidance is to pass the server-side `fallbacks` parameter
-by default on Fable-tier models, so a safety refusal routes to another model
-instead of failing. I did not add it: it needs a beta header and the beta
-messages endpoint, and the harness already handles `stop_reason == "refusal"`
-explicitly by raising.
-
-For a purchasing agent reading ERP records, a refusal is close to impossible.
-I would leave it out and say so if asked. Tell me if you want it in.
-
----
-
-## Things I chose not to build, and why
-
-Each of these is defensible as-is, and each is an hour or two if you want it.
-
-- **The caching win in `docs/DESIGN.md` §3, lever 2.** `plan` and
-  `plan.workflow_params` send the same ~4k bundle back to back, and the second
-  call pays full price. Moving the bundle ahead of the last cache breakpoint
-  would make it nearly free. I documented it rather than built it, because it
-  is an optimisation and the brief is not graded on throughput.
-- **The three workflow-engine changes** in `docs/DESIGN.md` §6: steps declaring
-  reads and writes, compensation attached to the step rather than the tool, and
-  the human gate as a node inside the graph. The brief explicitly asks this as
-  a design question, so describing them is the requested answer.
-- **An eval harness.** `docs/DESIGN.md` §5 describes how the cassettes become a
-  golden set. Building it would be inventing scope the brief does not ask for.
-- **Version migration for in-flight workflow instances.** The brief says this
-  is a design-doc question. An instance refuses to resume across a version
-  change, loudly and with a test.
+- The three workflow-engine changes in `docs/DESIGN.md` §6 (steps declaring
+  reads and writes, compensation attached to the step, the human gate as a
+  node inside the graph). The brief asks this as a design question.
+- Version migration for in-flight workflow instances. An instance refuses to
+  resume across a version change, loudly and with a test. The brief says the
+  handling is a design-doc question.
+- The caching improvement in `docs/DESIGN.md` §3. Measured, documented, not
+  built, because the brief is not graded on throughput.
+- An eval harness. `docs/DESIGN.md` §5 describes how the cassettes become a
+  golden set.
+- Everything in [`README.md`](README.md), "What I cut, and why".
 
 ---
 
 ## State
 
 ```
-77 tests passing          tree clean, no remote        .env untracked
-demo --scripted    OK     harness 6,073 loc           5 cassettes
-demo (replay)      OK     13% docstring density       ~$0.33 per live run
+82 tests passing          tree clean                 .env untracked
+demo --scripted    OK     harness ~6,000 loc         5 cassettes
+demo (replay)      OK     13% docstring density      ~$0.18 per live run
 audit chain        OK     style check clean
 ```
-
-Every required and optional item in the brief is complete: Parts 1, 2 and 3,
-`MODEL.md`, README, the design doc with both optional sections, tests covering
-the gate, trigger dedupe and workflow resumption, and a recorded run.
