@@ -13,7 +13,7 @@ things under test. The one scripted seam is the model client, and it implements
 the same interface the real one does rather than patching over it.
 
 ## Outputs
-- `python -m pytest`, 69 tests
+- `python -m pytest`, 77 tests
 
 ## Human check
 Read an assertion. An authorization test should check that the thing was
@@ -30,6 +30,7 @@ failed to exist.
 | `test_workflow.py` | Declared order, bounded model steps, resumption, compensation |
 | `test_approvals.py` | Both halves of the backup rule, firing and not firing |
 | `test_audit.py` | Append only, tamper evident, and sufficient on its own |
+| `test_docs.py` | The numbers the docs claim, and that the seed still holds its traps |
 
 `test_audit.py::test_the_log_alone_answers_all_five_questions` is the one that
 matters most. It holds only the log and answers what the agent saw, what it

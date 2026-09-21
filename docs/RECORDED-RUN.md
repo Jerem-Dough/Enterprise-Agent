@@ -18,11 +18,11 @@ harness output. Nothing is pasted or edited.
 
 ▸ A detector sweep runs on a schedule. Nobody prompted it.
   
-  ai-4e3e706a61bd  lot_hold_blocks_production
+  ai-46a6f2fca515  lot_hold_blocks_production
     for Elena Ortiz, Quality Manager
     Lot L-2093 of P-1180 is on hold (Surface finish 3.4 Ra vs spec 3.2 Ra) and is still allocated to production order 4820, which starts 2026-09-05 and needs 80.
   
-  ai-27dfe8cd93ac  supplier_delay_threatens_production
+  ai-0b2725a39334  supplier_delay_threatens_production
     for Dana Whitfield, Purchasing Manager
     Kestrel Components has written about PO-77812 for P-4471. Production order 4812 starts 2026-09-07 and needs 120, but stock on hand projects to 0 by then.
   
@@ -55,7 +55,7 @@ harness output. Nothing is pasted or edited.
   ✓ purchase_orders.an_approved_supplier_can_make_the_date: 1 of 2 approved suppliers can deliver by 2026-09-07
 
 ▸ Nothing is written until a person says so.
-  ! approval apr-766c275c223a is with Dana Whitfield until 2026-09-02T17:00:00
+  ! approval apr-465b4a1c76e9 is with Dana Whitfield until 2026-09-02T17:00:00
     a human must approve every write; value 5580.00 is within Dana Whitfield's 25000.00 limit
 
 
@@ -65,11 +65,11 @@ harness output. Nothing is pasted or edited.
 
 ▸ End of day arrives with the request still pending.
     clock is now 2026-09-02T17:00:00
-  ! apr-766c275c223a → u-102
+  ! apr-465b4a1c76e9 → u-102
     Dana Whitfield did not answer by end of day and is out tomorrow; routed to their designated backup Marcus Webb
 
 ▸ Authority does not transfer with the request. Dana tries anyway.
-  ✓ refused: apr-766c275c223a was asked of u-102, not u-101
+  ✓ refused: apr-465b4a1c76e9 was asked of u-102, not u-101
 
 ▸ Marcus approves.
   ✓ approved by Marcus Webb at 2026-09-02T17:00:00
@@ -94,7 +94,7 @@ harness output. Nothing is pasted or edited.
   Apex (S-Q) is approved, cheapest on file for this part, and ships
     next day. It is not approved for P-4471, so it never reached the model.
   
-  new order PO-dbbc4094c98f with Meridian Drives, 120 at 46.5, promised 2026-09-04
+  new order PO-088d3fe65948 with Meridian Drives, 120 at 46.5, promised 2026-09-04
     original PO-77812 is now open
     notified sam.okafor@northfield-mfg.example
     notification text came from the model, facts verified
@@ -110,18 +110,18 @@ harness output. Nothing is pasted or edited.
     replacement, and on a miss it re-checks the next working day.
 
 ▸ Advance the clock to 2026-09-04, Friday, the promised date.
-  ✗ PO-dbbc4094c98f is still open on 2026-09-04
-    re-entered the loop as attention item ai-be3e57450e4b
+  ✗ PO-088d3fe65948 is still open on 2026-09-04
+    re-entered the loop as attention item ai-2b94c3f6fd26
     raised a new item: True   next check 2026-09-07
 
 ▸ Advance the clock to 2026-09-07, Monday, production order 4812 starts.
-  ✗ PO-dbbc4094c98f is still open on 2026-09-07
-    re-entered the loop as attention item ai-be3e57450e4b
+  ✗ PO-088d3fe65948 is still open on 2026-09-07
+    re-entered the loop as attention item ai-2b94c3f6fd26
     raised a new item: False   next check 2026-09-08
 
 ▸ Advance the clock to 2026-09-08, Tuesday.
-  ✗ PO-dbbc4094c98f is still open on 2026-09-08
-    re-entered the loop as attention item ai-be3e57450e4b
+  ✗ PO-088d3fe65948 is still open on 2026-09-08
+    re-entered the loop as attention item ai-2b94c3f6fd26
     raised a new item: False   next check 2026-09-09
   
   The dedupe key is the order, not the day. One unresolved late
@@ -134,18 +134,18 @@ harness output. Nothing is pasted or edited.
 
 ▸ Scenario A reconstructed from the log and nothing else.
 
-[2026-09-02T09:00:00] detect    run.started  actor=u-101  attention_item=ai-27dfe8cd93ac
+[2026-09-02T09:00:00] detect    run.started  actor=u-101  attention_item=ai-0b2725a39334
               detector: "supplier_delay_threatens_production"
               summary: "Kestrel Components has written about PO-77812 for P-4471. Production order 4812 starts 2026-09-07 and needs 120, but stock on hand projects to 0 by then."
               dedupe_key: "supplier_delay:PO-77812:4812:M-001"
               principal: {"user_id": "u-101", "name": "Dana Whitfield", "role": "Purchasing Manager", "scopes": ["calendar:read", "erp:part:read", "erp:po:cancel", "erp:po:create", "erp:po:read", "erp:production:read", "erp:supplier:read", "m...
-[2026-09-02T09:00:00] context   context.gathered  actor=u-101  attention_item=ai-27dfe8cd93ac
+[2026-09-02T09:00:00] context   context.gathered  actor=u-101  attention_item=ai-0b2725a39334
               providers_used: ["calendar", "erp", "mail"]
               providers_skipped: [{"provider": "quality", "reason": "principal holds none of this provider's scopes", "scopes": ["erp:quality:read"]}]
               omitted: {}
               record_counts: {"calendar": {"my_events": 3, "today": 1, "out_of_office_by_day": 1}, "erp": {"part": 1, "inventory_position": 1, "purchase_orders": 1, "open_purchase_orders": 1, "production_orders": 1, "suppliers": 5, "focus_product...
               durable_memory_keys: []
-[2026-09-02T09:00:00] plan      plan.produced  actor=u-101  plan=run-4955aa441c2f
+[2026-09-02T09:00:00] plan      plan.produced  actor=u-101  plan=run-3c4982fef6d5
               headline: "Production order 4812 needs 120 of P-4471 on 2026-09-07, and Kestrel has pushed PO-77812 to a 2026-09-08 dock date, so stock projects to zero at start. I propose the po_reroute workflow: cover the shortfall through M...
               reasoning: "Kestrel's email M-001 moves PO-77812 arrival to 2026-09-08, one day after production order 4812's scheduled start of 2026-09-07, which requires 120 units of P-4471. The ERP inventory position shows a stockout date of...
               workflow: "po_reroute"
@@ -158,7 +158,7 @@ harness output. Nothing is pasted or edited.
               model_call: "plan.70d1a54d07c1cf6c"
               replayed: true
               context_window_chars: {"system_chars": 9149, "user_chars": 10929, "context_chars": 6468}
-[2026-09-02T09:00:00] gate      gate.allowed  actor=u-101  plan=run-4955aa441c2f
+[2026-09-02T09:00:00] gate      gate.allowed  actor=u-101  plan=run-3c4982fef6d5
               allowed: true
               requires_approval: true
               approval_reason: "a human must approve every write; value 5580.00 is within Dana Whitfield's 25000.00 limit"
@@ -168,14 +168,14 @@ harness output. Nothing is pasted or edited.
               facts: {"path": "workflow", "workflow": "po_reroute", "version": "1.0.0", "declared_steps": ["select_alternate_supplier", "confirm_supplier_approved", "confirm_lead_time", "create_replacement_po", "amend_original_po", "notif...
               checks: [{"rule": "permissions.scopes", "verdict": "pass", "message": "u-101 holds every scope this plan needs", "detail": {"required": ["erp:part:read", "erp:po:cancel", "erp:po:create", "erp:po:read", "erp:production:read",...
               failed_rules: []
-[2026-09-02T09:00:00] approval  approval.requested  actor=u-101  approval=apr-766c275c223a
+[2026-09-02T09:00:00] approval  approval.requested  actor=u-101  approval=apr-465b4a1c76e9
               requested_of: "u-101"
               reason: "a human must approve every write; value 5580.00 is within Dana Whitfield's 25000.00 limit"
               routing: {"original_approver": "u-101", "escalated": false, "approver_limit": 25000.0, "value": 5580.0}
               deadline: "2026-09-02T17:00:00"
               value: 5580.0
               headline: "Production order 4812 needs 120 of P-4471 on 2026-09-07, and Kestrel has pushed PO-77812 to a 2026-09-08 dock date, so stock projects to zero at start. I propose the po_reroute workflow: cover the shortfall through M...
-[2026-09-02T17:00:00] approval  approval.rerouted  actor=system  approval=apr-766c275c223a
+[2026-09-02T17:00:00] approval  approval.rerouted  actor=system  approval=apr-465b4a1c76e9
               from: "u-101"
               to: "u-102"
               to_name: "Marcus Webb"
@@ -183,90 +183,90 @@ harness output. Nothing is pasted or edited.
               deadline_passed: "2026-09-02T17:00:00"
               approver_out_on: "2026-09-03"
               value: 5580.0
-[2026-09-02T17:00:00] approval  approval.refused_decider  actor=u-101  approval=apr-766c275c223a
+[2026-09-02T17:00:00] approval  approval.refused_decider  actor=u-101  approval=apr-465b4a1c76e9
               attempted_by: "u-101"
               requested_of: "u-102"
-[2026-09-02T17:00:00] approval  approval.approved  actor=u-102  approval=apr-766c275c223a
+[2026-09-02T17:00:00] approval  approval.approved  actor=u-102  approval=apr-465b4a1c76e9
               note: "Confirmed with the line. Proceed."
               value: 5580.0
               approver_limit: 20000.0
               originally_requested_of: "u-101"
-[2026-09-02T17:00:00] execute   execute.started  actor=u-101  approval=apr-766c275c223a
+[2026-09-02T17:00:00] execute   execute.started  actor=u-101  approval=apr-465b4a1c76e9
               approved_by: "u-102"
               path: "workflow"
-[2026-09-02T17:00:00] execute   workflow.started  actor=u-101  workflow=wf-fc6495c4d836
+[2026-09-02T17:00:00] execute   workflow.started  actor=u-101  workflow=wf-691ede2ed982
               definition: "po_reroute"
               version: "1.0.0"
               params: {"part_id": "P-4471", "original_po_id": "PO-77812", "prod_order_id": "4812", "qty": 120, "needed_by": "2026-09-07", "preferred_supplier_id": "S-Z", "justification": "Kestrel's email M-001 pushes PO-77812 arrival to 20...
               declared_steps: ["select_alternate_supplier", "confirm_supplier_approved", "confirm_lead_time", "create_replacement_po", "amend_original_po", "notify_production", "schedule_arrival_check"]
-[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-fc6495c4d836:select_alternate_supplier
+[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-691ede2ed982:select_alternate_supplier
               index: 0
               kind: "model"
               tool: null
               output: {"supplier_id": "S-Z", "justification": "Lead time decided it: S-Z's 2-day lead time delivers by 2026-09-04, meeting the 2026-09-07 dock date, while S-W's 9-day lead time would arrive around 2026-09-11, too late despi...
               error: null
-[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-fc6495c4d836:confirm_supplier_approved
+[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-691ede2ed982:confirm_supplier_approved
               index: 1
               kind: "check"
               tool: null
               output: {"supplier_id": "S-Z", "supplier_name": "Meridian Drives", "approved_for_part": true, "approved_parts": ["P-4471"]}
               error: null
-[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-fc6495c4d836:confirm_lead_time
+[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-691ede2ed982:confirm_lead_time
               index: 2
               kind: "check"
               tool: null
               output: {"lead_time_days": 2, "projected_arrival": "2026-09-04", "needed_by": "2026-09-07", "days_of_margin": 3}
               error: null
 [2026-09-02T17:00:00] execute   tool.invoked  actor=u-101  tool=create_purchase_order
-              idempotency_key: "wf-fc6495c4d836:create_replacement_po"
+              idempotency_key: "wf-691ede2ed982:create_replacement_po"
               params: {"part_id": "P-4471", "supplier_id": "S-Z", "qty": 120, "unit_price": 46.5, "needed_by": "2026-09-07", "reason": "Replacement for PO-77812, which will not arrive before production order 4812 starts on 2026-09-07. Kest...
               rationale: "workflow step create_replacement_po"
-              output: {"po_id": "PO-dbbc4094c98f", "part_id": "P-4471", "supplier_id": "S-Z", "qty": 120, "unit_price": 46.5, "total_value": 5580.0, "ordered_date": "2026-09-02", "promised_date": "2026-09-04", "status": "open", "created_by...
-[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-fc6495c4d836:create_replacement_po
+              output: {"po_id": "PO-088d3fe65948", "part_id": "P-4471", "supplier_id": "S-Z", "qty": 120, "unit_price": 46.5, "total_value": 5580.0, "ordered_date": "2026-09-02", "promised_date": "2026-09-04", "status": "open", "created_by...
+[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-691ede2ed982:create_replacement_po
               index: 3
               kind: "tool"
               tool: "create_purchase_order"
-              output: {"po_id": "PO-dbbc4094c98f", "part_id": "P-4471", "supplier_id": "S-Z", "qty": 120, "unit_price": 46.5, "total_value": 5580.0, "ordered_date": "2026-09-02", "promised_date": "2026-09-04", "status": "open", "created_by...
+              output: {"po_id": "PO-088d3fe65948", "part_id": "P-4471", "supplier_id": "S-Z", "qty": 120, "unit_price": 46.5, "total_value": 5580.0, "ordered_date": "2026-09-02", "promised_date": "2026-09-04", "status": "open", "created_by...
               error: null
 [2026-09-02T17:00:00] execute   tool.invoked  actor=u-101  tool=amend_purchase_order
-              idempotency_key: "wf-fc6495c4d836:amend_original_po"
-              params: {"po_id": "PO-77812", "action": "reduce", "new_qty": 280, "reason": "Supply rerouted for production order 4812: reduced by 120 now covered by PO-dbbc4094c98f"}
+              idempotency_key: "wf-691ede2ed982:amend_original_po"
+              params: {"po_id": "PO-77812", "action": "reduce", "new_qty": 280, "reason": "Supply rerouted for production order 4812: reduced by 120 now covered by PO-088d3fe65948"}
               rationale: "workflow step amend_original_po"
               output: {"po_id": "PO-77812", "action": "reduce", "before": {"status": "open", "qty": 400, "total_value": 16800.0}, "after": {"status": "open", "qty": 280, "total_value": 11760.0}}
-[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-fc6495c4d836:amend_original_po
+[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-691ede2ed982:amend_original_po
               index: 4
               kind: "tool"
               tool: "amend_purchase_order"
               output: {"po_id": "PO-77812", "action": "reduce", "before": {"status": "open", "qty": 400, "total_value": 16800.0}, "after": {"status": "open", "qty": 280, "total_value": 11760.0}, "replayed": false}
               error: null
 [2026-09-02T17:00:00] execute   tool.invoked  actor=u-101  tool=notify_production
-              idempotency_key: "wf-fc6495c4d836:notify_production"
+              idempotency_key: "wf-691ede2ed982:notify_production"
               params: {"prod_order_id": "4812", "subject": "Material supply change for production order 4812", "body": "The material supply for production order 4812 has changed. Part P-4471 will now come from a new supplier: Meridian Driv...
               rationale: "workflow step notify_production"
-              output: {"message_id": "M-d7acd6f8093b", "to": ["sam.okafor@northfield-mfg.example"], "supervisor_id": "u-301", "prod_order_id": "4812", "subject": "Material supply change for production order 4812"}
-[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-fc6495c4d836:notify_production
+              output: {"message_id": "M-036602cdefb3", "to": ["sam.okafor@northfield-mfg.example"], "supervisor_id": "u-301", "prod_order_id": "4812", "subject": "Material supply change for production order 4812"}
+[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-691ede2ed982:notify_production
               index: 5
               kind: "tool"
               tool: "notify_production"
-              output: {"message_id": "M-d7acd6f8093b", "to": ["sam.okafor@northfield-mfg.example"], "supervisor_id": "u-301", "prod_order_id": "4812", "subject": "Material supply change for production order 4812", "replayed": false, "used_...
+              output: {"message_id": "M-036602cdefb3", "to": ["sam.okafor@northfield-mfg.example"], "supervisor_id": "u-301", "prod_order_id": "4812", "subject": "Material supply change for production order 4812", "replayed": false, "used_...
               error: null
-[2026-09-02T17:00:00] schedule  task.scheduled  actor=u-101  scheduled_task=task-4d6672d491ee
+[2026-09-02T17:00:00] schedule  task.scheduled  actor=u-101  scheduled_task=task-36ab8eb5a4d7
               kind: "po_arrival"
               due_at: "2026-09-04T09:00:00"
-              payload: {"check": "po_arrival", "subject_user": "u-101", "context": {"po_id": "PO-dbbc4094c98f", "part_id": "P-4471", "prod_order_id": "4812", "needed_by": "2026-09-07"}, "reason": "Confirm the replacement shipment for produc...
-              dedupe_key: "po_arrival:2026-09-04:needed_by=2026-09-07:part_id=P-4471:po_id=PO-dbbc4094c98f:prod_order_id=4812"
+              payload: {"check": "po_arrival", "subject_user": "u-101", "context": {"po_id": "PO-088d3fe65948", "part_id": "P-4471", "prod_order_id": "4812", "needed_by": "2026-09-07"}, "reason": "Confirm the replacement shipment for produc...
+              dedupe_key: "po_arrival:2026-09-04:needed_by=2026-09-07:part_id=P-4471:po_id=PO-088d3fe65948:prod_order_id=4812"
 [2026-09-02T17:00:00] execute   tool.invoked  actor=u-101  tool=schedule_follow_up
-              idempotency_key: "wf-fc6495c4d836:schedule_arrival_check"
-              params: {"check": "po_arrival", "due_date": "2026-09-04", "subject_user": "u-101", "context": {"po_id": "PO-dbbc4094c98f", "part_id": "P-4471", "prod_order_id": "4812", "needed_by": "2026-09-07"}, "reason": "Confirm the repla...
+              idempotency_key: "wf-691ede2ed982:schedule_arrival_check"
+              params: {"check": "po_arrival", "due_date": "2026-09-04", "subject_user": "u-101", "context": {"po_id": "PO-088d3fe65948", "part_id": "P-4471", "prod_order_id": "4812", "needed_by": "2026-09-07"}, "reason": "Confirm the repla...
               rationale: "workflow step schedule_arrival_check"
-              output: {"task_id": "task-4d6672d491ee", "kind": "po_arrival", "due_at": "2026-09-04T09:00:00", "already_scheduled": false, "subject_user": "u-101"}
-[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-fc6495c4d836:schedule_arrival_check
+              output: {"task_id": "task-36ab8eb5a4d7", "kind": "po_arrival", "due_at": "2026-09-04T09:00:00", "already_scheduled": false, "subject_user": "u-101"}
+[2026-09-02T17:00:00] execute   workflow.step_ok  actor=u-101  workflow_step=wf-691ede2ed982:schedule_arrival_check
               index: 6
               kind: "tool"
               tool: "schedule_follow_up"
-              output: {"task_id": "task-4d6672d491ee", "kind": "po_arrival", "due_at": "2026-09-04T09:00:00", "already_scheduled": false, "subject_user": "u-101", "replayed": false}
+              output: {"task_id": "task-36ab8eb5a4d7", "kind": "po_arrival", "due_at": "2026-09-04T09:00:00", "already_scheduled": false, "subject_user": "u-101", "replayed": false}
               error: null
-[2026-09-02T17:00:00] execute   workflow.completed  actor=u-101  workflow=wf-fc6495c4d836
+[2026-09-02T17:00:00] execute   workflow.completed  actor=u-101  workflow=wf-691ede2ed982
               definition: "po_reroute"
               version: "1.0.0"
               steps: ["select_alternate_supplier", "confirm_supplier_approved", "confirm_lead_time", "create_replacement_po", "amend_original_po", "notify_production", "schedule_arrival_check"]
@@ -278,7 +278,7 @@ harness output. Nothing is pasted or edited.
               kind: "part_reroute"
               value: {"part_id": "P-4471", "away_from": "S-Y", "prod_order_id": "4812", "on": "2026-09-02", "occurrences": 1}
               replaced: null
-[2026-09-02T17:00:00] system    run.finished  actor=system  run=run-4955aa441c2f
+[2026-09-02T17:00:00] system    run.finished  actor=system  run=run-3c4982fef6d5
               status: "completed"
               outcome: "{}"
 
@@ -286,21 +286,21 @@ harness output. Nothing is pasted or edited.
   ✓ 40 entries, hash chain verified
   
   every run also left a folder you can read without running anything:
-    run-4955aa441c2f\01-attention.json
-    run-4955aa441c2f\02-context.json
-    run-4955aa441c2f\03-prompt.json
-    run-4955aa441c2f\04-plan.json
-    run-4955aa441c2f\05-gate.json
-    run-4955aa441c2f\06-approval.json
-    run-4955aa441c2f\07-steps\01-select_alternate_supplier.json
-    run-4955aa441c2f\07-steps\02-confirm_supplier_approved.json
-    run-4955aa441c2f\07-steps\03-confirm_lead_time.json
-    run-4955aa441c2f\07-steps\04-create_replacement_po.json
-    run-4955aa441c2f\07-steps\05-amend_original_po.json
-    run-4955aa441c2f\07-steps\06-notify_production.json
-    run-4955aa441c2f\07-steps\07-schedule_arrival_check.json
-    run-4955aa441c2f\08-execution.json
-    run-4955aa441c2f\audit.jsonl
+    run-3c4982fef6d5\01-attention.json
+    run-3c4982fef6d5\02-context.json
+    run-3c4982fef6d5\03-prompt.json
+    run-3c4982fef6d5\04-plan.json
+    run-3c4982fef6d5\05-gate.json
+    run-3c4982fef6d5\06-approval.json
+    run-3c4982fef6d5\07-steps\01-select_alternate_supplier.json
+    run-3c4982fef6d5\07-steps\02-confirm_supplier_approved.json
+    run-3c4982fef6d5\07-steps\03-confirm_lead_time.json
+    run-3c4982fef6d5\07-steps\04-create_replacement_po.json
+    run-3c4982fef6d5\07-steps\05-amend_original_po.json
+    run-3c4982fef6d5\07-steps\06-notify_production.json
+    run-3c4982fef6d5\07-steps\07-schedule_arrival_check.json
+    run-3c4982fef6d5\08-execution.json
+    run-3c4982fef6d5\audit.jsonl
 ```
 
 ---

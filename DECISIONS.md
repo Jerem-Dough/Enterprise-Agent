@@ -45,7 +45,7 @@ measured numbers. Paying $0.33 for the graded run is not the place to optimise.
 
 ### 2. Is this going to a remote, and under whose name
 
-The repo is **local only, nine commits, no remote**. If it needs to go to
+The repo is **local only, no remote**. If it needs to go to
 GitHub, tell me which account (`RinDig` or `Jerem-Dough`) and public or private,
 and I will push it.
 
@@ -134,7 +134,7 @@ Each of these is defensible as-is, and each is an hour or two if you want it.
 ## State
 
 ```
-71 tests passing          9 commits, tree clean       .env untracked
+77 tests passing          tree clean, no remote        .env untracked
 demo --scripted    OK     harness 6,073 loc           5 cassettes
 demo (replay)      OK     13% docstring density       ~$0.33 per live run
 audit chain        OK     style check clean

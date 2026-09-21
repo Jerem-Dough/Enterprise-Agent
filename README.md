@@ -65,8 +65,7 @@ python silo.py catalogue                    # every extension point
 ```bash
 python -m pytest
 ```
-
-69 tests against a real database. Covering the gate, trigger dedupe and workflow
+77 tests against a real database. Covering the gate, trigger dedupe and workflow
 resumption as the brief requires, plus approval routing and the audit log.
 
 ---
