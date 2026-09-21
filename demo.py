@@ -204,8 +204,12 @@ def scenario_a(harness: Harness) -> dict:
     line(f"\n  new order {BOLD}{new_po['po_id']}{RESET} with "
          f"{new_po['supplier_name']}, {new_po['qty']} at {new_po['unit_price']}, "
          f"promised {new_po['promised_date']}")
-    line(f"  original {steps['amend_original_po']['output']['po_id']} is now "
-         f"{steps['amend_original_po']['output']['after']['status']}")
+    amended = steps["amend_original_po"]["output"]
+    if amended["action"] == "reduce":
+        line(f"  original {amended['po_id']} reduced from {amended['before']['qty']} "
+             f"to {amended['after']['qty']} units, still open for the remainder")
+    else:
+        line(f"  original {amended['po_id']} is now {amended['after']['status']}")
     notify = steps["notify_production"]["output"]
     line(f"  notified {notify['to'][0]}")
     dim(f"  notification text came from "
