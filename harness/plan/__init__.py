@@ -1,28 +1,17 @@
 """The free-form planner: attention item plus context, to a recommendation.
 
-This is the only place in the harness where the model decides anything
-open-ended, and the boundaries around it are deliberate.
+The only place in the harness where a model decides anything open-ended.
 
-**What it may decide.** Whether the situation warrants acting at all, which
-declared workflow covers it (if any), what parameters that workflow should get,
-or, when nothing covers it, which catalogue tools to call with what arguments.
-And what to say to the person, in their agent's voice.
+It may decide whether to act, which declared workflow covers the situation and
+with what parameters, which catalogue tools to call when none does, and what to
+say to the person. It may not decide whether it is permitted (the gate),
+whether a workflow's steps may be reordered (the definition), whether a write
+happens without approval (the kernel), or what any record says (the providers).
 
-**What it may not decide.** Whether it is permitted (the gate), whether the
-steps of a workflow may be reordered (the definition), whether a write happens
-without approval (the kernel), or what any record actually says (the providers).
-The plan is a proposal. Nothing in this module writes anything.
-
-**What it is shown.** The attention item, the context bundle, and the tool
-catalogue already narrowed to what this user could actually run. Proposing an
-action the user cannot take is a refusal with extra steps, so those tools never
-enter the window. The bundle is passed whole, including the noise, because the
-noise is what the gate exists to survive.
-
-**What it must produce.** A `Plan`, validated on arrival. Every factual claim
-carries a citation to a record id in the bundle. A recommendation the reader
-cannot check against a record is a guess with good grammar, and the citation
-requirement makes checking mechanical rather than a matter of trust.
+It is shown the bundle whole, noise included, because the noise is what the
+gate exists to survive, and a tool catalogue already narrowed to what this user
+could run. Every factual claim must carry a citation to a record id, which
+makes checking mechanical rather than a matter of trust.
 """
 from __future__ import annotations
 
@@ -172,17 +161,12 @@ def _render_evidence(evidence: list[dict]) -> str:
 def _action_union(tool_names: list[str]):
     """A tagged union with one variant per tool the user may run.
 
-    The same lesson as `workflow_params`, learned twice. `ProposedAction.params`
-    was an open dict, so constrained decoding could only ever put `{}` in it: a
-    live run proposed `reallocate_lot` with no arguments and the rationale
-    "placeholder", and the gate refused it for a lot id of `None`. The model was
-    not being lazy. The schema had nowhere to put the answer.
-
-    Each variant pins `tool` to a literal and types `params` as that tool's own
-    Pydantic model, so the arguments are concrete properties the model can
-    decode into. Two things fall out for free: a tool outside the catalogue
-    cannot be named, and arguments are validated against the tool's schema at
-    generation time rather than at dispatch.
+    The `workflow_params` lesson, learned twice: `ProposedAction.params` was
+    also an open dict, so a live run proposed `reallocate_lot` with no
+    arguments and the rationale "placeholder". Pinning `tool` to a literal and
+    typing `params` as that tool's own model makes the arguments concrete,
+    makes a tool outside the catalogue unnameable, and validates at generation
+    time rather than at dispatch.
     """
     from .. import tools as tool_registry
 

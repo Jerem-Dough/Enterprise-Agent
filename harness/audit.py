@@ -1,29 +1,16 @@
 """The append-only record, and the answer to requirement 7.
 
-From this log alone a reader should be able to reconstruct what the agent saw,
-what it concluded, what it was allowed to do, who approved what, and what
-actually happened in each system. So every phase of a run writes here, not just
-the writes: the detector firing, the context that was gathered and how much of
-it the model was shown, the plan, each gate decision with the rule that produced
-it, the approval request and its routing, every tool invocation with its
-idempotency key, and every scheduled follow up.
+Every phase writes here, not just the writes, so a reader holding only this log
+can reconstruct what the agent saw, concluded, was allowed to do, who approved,
+and what happened in each system.
 
-Two properties make the log worth trusting.
+Two properties make it worth trusting. It cannot be edited: triggers abort any
+update or delete for every connection, including the privileged one. And it
+cannot be edited quietly: each entry carries the previous entry's hash, so a
+removed or altered row breaks verification at a named sequence number.
 
-**It cannot be edited.** Triggers in the schema abort any update or delete on
-`audit_log`, for every connection including the privileged one. This is the
-SQLite equivalent of revoking those grants from the application's own database
-role: the fix for "a bug on the service path could rewrite history" is to take
-the capability away, not to promise not to use it.
-
-**It cannot be edited quietly.** Each entry carries the hash of the previous
-one, so removing or altering a row breaks the chain from that point on and
-`verify()` says exactly where. An append-only table plus a chain means the
-strongest available attack is appending a visible correction, which is the
-behaviour we want anyway.
-
-The SQLite table is authoritative. The `runs/<run-id>/audit.jsonl` mirror is a
-rendering of it for a human with a text editor, never a second source of truth.
+The SQLite table is authoritative. `runs/<run-id>/audit.jsonl` is a rendering
+of it for a human with a text editor, never a second source of truth.
 """
 from __future__ import annotations
 

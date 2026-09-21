@@ -1,34 +1,17 @@
 """The gate: permissions, policy, and who has to say yes.
 
-Nothing the model produced reaches a tool without passing through here, and the
-single most important property of this module is what it does *not* read.
+Nothing the model produced reaches a tool without passing through here. The
+important property is what the gate does *not* read: it re-derives every fact
+it decides on from the store rather than trusting the plan's account of the
+world. A gate that checked the model's assertions against the model's other
+assertions would be an elaborate way of agreeing with it.
 
-**The gate does not trust the plan's account of the world.** It re-reads every
-fact it decides on from the store. The plan says the supplier is approved; the
-gate looks the supplier up. The plan says the order is worth eighteen thousand;
-the gate multiplies the quantity by the price on the supplier record. A gate
-that validated the model's assertions against the model's other assertions
-would be an elaborate way of agreeing with it.
+Every rule runs, no short-circuiting, and every decision names its rule with
+the values it decided on. "Denied" is not something a person can act on.
 
-**Every decision names its rule.** A refusal is a `Check` with a rule id, a
-message and the values it decided on, written to the audit log. "Denied" is not
-an outcome anybody can act on. "`purchase_orders.supplier_must_be_approved_for_part`
-refused S-Q because P-4471 is not in its approved_parts" is.
-
-**Every rule runs.** Checks are not short-circuited on the first failure. When
-a plan is refused for three reasons, the log says three, because a human who
-fixes the first one should not have to discover the second by trying again.
-
-**Approval is required for writes, separately from authority.** Policy says no
-write happens without a human. Authority is a second question: whether *this*
-person's limit covers *this* value, or whether it has to go up. The two are
-independent and conflating them is how an agent ends up executing something
-nobody senior enough ever saw.
-
-The gate runs with the privileged store. It is part of the trusted computing
-base, alongside the kernel and the audit log: it has to read approval limits
-and reporting lines, which are authorization facts rather than company data,
-and which no `ScopedStore` exposes.
+Approval requirement and approval authority are separate questions: policy says
+no write happens without a human, authority says whether this person's limit
+covers this value. See CONTEXT.md.
 """
 from __future__ import annotations
 

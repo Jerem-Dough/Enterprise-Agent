@@ -1,29 +1,22 @@
 """Durable state, and the only place a scope check can be skipped by accident.
 
-Two handles exist and the difference between them is the security model.
+Two handles, and the difference between them is the security model.
 
-`Store` is privileged. It owns the connection, the schema, the seed load, and
-the harness's own bookkeeping (runs, approvals, workflow state, the schedule,
-the audit chain). It performs no scope checks, because the things that use it
-are the trusted computing base: the kernel, the gate, the scheduler, the audit.
+`Store` is privileged: schema, seed, and the harness's own bookkeeping. It
+performs no scope checks because its callers are the trusted computing base.
 
-`ScopedStore` is what providers and tools receive, and it is the only handle
-they ever receive. Every method on it names the scope it requires and raises
-`ScopeDenied` without it. Reads that belong to a person (mail, calendar) filter
-on the principal held by the handle rather than on an argument, so a caller
-cannot ask for somebody else's inbox at all. There is no method that widens a
-`ScopedStore` back into a `Store`.
+`ScopedStore` is all a provider or tool ever receives. Every method names the
+scope it needs. Mail and calendar reads filter on the principal the handle
+holds rather than on an argument, so there is no call that reaches another
+person's inbox, and nothing widens a scoped handle back into a privileged one.
 
-The point, borrowed from a system where this was enforced by Postgres RLS: a
-forgotten check should return nothing, not everything. A provider that neglects
-to think about permissions still cannot read what its principal cannot read,
-because the handle it was given cannot express the query.
+The point, borrowed from a system where Postgres RLS enforced it: a forgotten
+check should return nothing, not everything.
 
-Why SQLite rather than the JSON files themselves: deferred work and workflow
-instances have to survive a restart, tool invocations need an atomic
-idempotency ledger, and the audit log needs writes that cannot be taken back.
-Files give none of those. The world data lives here too, so that a mutation and
-its audit entry commit together or not at all.
+SQLite rather than the JSON files because deferred work and workflow instances
+must survive a restart, the idempotency ledger must be atomic, and the audit log
+must not be editable. World data lives here too so a mutation and its audit
+entry commit together.
 """
 from __future__ import annotations
 
@@ -403,14 +396,10 @@ class ScopedStore:
     def directory(self) -> dict[str, dict]:
         """Names, roles and work addresses for every colleague.
 
-        Deliberately ungated. An employee can always look up who a colleague is
-        and how to email them, and a harness that pretended otherwise would
-        force tools to reach around the scoped handle to send a message, which
-        is a far worse outcome than exposing a staff list.
-
-        Equally deliberately, it returns four fields. Scopes, approval limits
-        and reporting lines are not in it. Those are authorization facts, they
-        belong to the gate, and the gate uses the privileged handle.
+        Deliberately ungated, because the alternative is tools reaching around
+        the scoped handle to send a message. Equally deliberately four fields:
+        scopes, limits and reporting lines are authorization facts and belong
+        to the gate.
         """
         return {
             row["user_id"]: {

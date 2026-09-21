@@ -1,30 +1,14 @@
 """Noticing, on a schedule, without being asked.
 
-A detector answers one question: is there a situation here that a particular
-employee would want to know about. It does not gather full context, does not
-reason, and does not propose anything. It emits an `AttentionItem` naming the
-focus and the evidence, and the kernel takes it from there.
+A detector answers one question: is there a situation a particular employee
+would want to know about. It does not gather full context, reason, or propose.
 
-**Detectors run as the employee, not as the machine.** The sweep is enumerated
-by the system actor, which holds no scopes, and each detector is then executed
-against a `ScopedStore` for the user whose attention is at stake. A detector
-therefore cannot surface a situation built from records that user is not
-allowed to see, which would be an information leak dressed as a notification.
-
-**Detectors are deterministic.** No model runs here. That is partly cost and
-partly honesty: a detector that fires on a model's judgement is a detector
-whose false positive rate cannot be reasoned about. Where language has to be
-understood (what date the supplier actually promised, in prose), that happens
-later, in the planner, on a context bundle a human can read.
-
-**Dedupe keys describe the situation, not the alert.** The key is built from
-the facts that would make this a genuinely new problem. Re-running the sweep
-every hour produces one item. A second email from the supplier, or a hold
-placed again after being lifted, produces a second item, because the situation
-changed. Getting this backwards is how agents become noise.
-
-To add a detector: drop a module here, decorate with `@detector(...)`, and add
-it to `_load()`.
+Three rules. Detectors run as the employee, never as the scheduler, so they
+cannot surface a situation built from records that user may not see. They are
+deterministic, because a detector firing on a model's judgement has a false
+positive rate nobody can reason about. And dedupe keys describe the
+*situation*, not the alert, so a repeated sweep produces one item while a
+genuinely new development produces another. See CONTEXT.md.
 """
 from __future__ import annotations
 

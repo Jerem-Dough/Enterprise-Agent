@@ -218,7 +218,7 @@ def scenario_a(harness: Harness) -> dict:
 
 
 def follow_up(harness: Harness, state: dict) -> None:
-    chapter("4", "The follow-up, and the clock advanced to Tuesday")
+    chapter("5", "The follow-up, and the clock advanced to Tuesday")
 
     dim("  The brief says the check is “for Tuesday”. In its own numbers Tuesday")
     dim("  is when the OLD supplier said their delayed shipment would land. The")
@@ -250,7 +250,7 @@ def follow_up(harness: Harness, state: dict) -> None:
 
 
 def scenario_b(harness: Harness) -> None:
-    chapter("5", "Scenario B, a different person, a different shape of problem")
+    chapter("4", "Scenario B, a different person, a different shape of problem")
 
     rows = harness.store.conn.execute(
         "select id from attention_items where detector = 'lot_hold_blocks_production'"
@@ -416,8 +416,11 @@ def run(args) -> int:
     harness = _harness("main", scripted=getattr(args, "scripted", False))
     try:
         state = scenario_a(harness)
-        follow_up(harness, state)
+        # Both agents act on the same day. Only then does the clock move, so
+        # Scenario B's production order has not already started when its own
+        # agent reasons about it.
         scenario_b(harness)
+        follow_up(harness, state)
         # Runs against its own throwaway databases, so the main world is
         # untouched and the audit chapter below still reconstructs the real run.
         failure_cases()

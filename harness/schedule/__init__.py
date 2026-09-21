@@ -1,27 +1,13 @@
 """Deferred work that survives a restart.
 
-The Tuesday follow-up is the requirement this exists for: after rerouting the
-order, the agent has to come back on the promised date and check whether the
-shipment actually arrived, and re-enter the loop if it did not.
+The queue is a table, not a timer, so killing the process loses nothing. In a
+deployment the caller is a worker loop; here it is a CLI command, which is the
+same thing with a slower pulse and a clock you can move.
 
-Three decisions worth defending.
-
-**The queue is a table, not a timer.** Nothing is held in memory, so killing the
-process loses nothing. A task is a row with a due time; `due()` asks the virtual
-clock what has come due and `run_due()` fires it. In a real deployment the
-caller is a worker loop; here it is a CLI command, which is the same thing with
-a slower heartbeat.
-
-**Firing is not authorisation.** A scheduled task carries the id of the user it
-is for, never their scopes or a token. When it fires, the kernel resolves that
-user afresh and the work is gated again, as them, at that moment. A follow up
-scheduled on Wednesday for a person who lost an entitlement on Thursday must not
-run with Wednesday's permissions, and a design that stashed credentials in the
-payload would do exactly that.
-
-**Dedupe is a unique key, not a lookup.** Scheduling the same follow up twice,
-because a workflow resumed and replayed a step, has to be harmless. The uniqueness
-constraint makes the second write a no-op that returns the first task.
+Firing is not authorisation. A task carries a `subject_user` and never scopes
+and never a token, so the work is gated afresh as that user when it fires. A
+follow up scheduled on Wednesday for somebody who lost an entitlement on
+Thursday must not run with Wednesday's permissions.
 """
 from __future__ import annotations
 

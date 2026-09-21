@@ -1,18 +1,14 @@
 """The shape a plan has to arrive in.
 
-Kept in its own module because three different things depend on it and none of
-them should depend on the model client: the planner produces it, the gate
-consumes it, and the executor walks it. Keeping the contract separate from the
-thing that calls an API is what lets every test below the planner run without a
-network.
+Kept separate from the client so the gate and the executor can depend on it
+without depending on anything that calls an API, which is what lets every test
+below the planner run offline.
 
-The important constraint is in `Plan`: a plan either enters a declared workflow
-or proposes free-form actions, never both. That is not a style preference. If a
-plan could do both, the model would be able to append a step to a workflow by
-putting it in `actions`, and the guarantee that purchasing asked for ("in that
-order, every time") would hold only by convention. Making it a validated
-either-or means the guarantee is enforced by the parser, before the gate ever
-sees the plan.
+The load-bearing constraint: a plan either enters a declared workflow or
+proposes free-form actions, never both. If it could do both, a model could
+append a step to a workflow by putting it in `actions`, and purchasing's "in
+that order, every time" would hold only by convention. As a validator, it is
+enforced by the parser before the gate ever sees the plan.
 """
 from __future__ import annotations
 
@@ -48,20 +44,16 @@ class Citation(BaseModel):
 
 
 class PlanDraft(BaseModel):
-    """What the model is actually asked for: a path, not its parameters.
+    """What the model is asked for: a path, not its parameters.
 
-    `Plan.workflow_params` is an open dict, and an open dict is exactly what
-    constrained decoding cannot fill. Pydantic renders `dict` as
-    `{"type": "object"}` with no properties, so a model decoding against it can
-    emit `{}` and nothing else. A live run proved it: the model chose
-    `po_reroute` correctly and returned empty parameters twice, once on the
-    retry that handed it the validation error verbatim. It was not ignoring the
-    instruction. It was obeying a schema that had no room for the answer.
+    Pydantic renders `dict` as `{"type": "object"}` with no properties, so
+    constrained decoding can only ever fill it with `{}`. A live run chose
+    `po_reroute` correctly and returned empty parameters twice, including on a
+    retry holding the validation error: obeying a schema with no room for the
+    answer, not ignoring an instruction.
 
-    So this step decides *which* path, and a second call fills the parameters
-    against the chosen workflow's own model, where every field is concrete and
-    the schema can express them. The planner decides whether; a bounded call
-    supplies what. That is the same shape the workflow's own model steps use.
+    So this decides which path, and a second call fills the parameters against
+    the workflow's own concrete model.
     """
 
     headline: str = Field(
@@ -191,19 +183,11 @@ class Plan(BaseModel):
 
     @model_validator(mode="after")
     def _a_workflow_needs_its_parameters(self) -> Plan:
-        """Entering a workflow without filling in its parameters is not a plan.
+        """Entering a workflow without its parameters is not a plan.
 
-        `workflow_params` is an open dict, because this schema is static and
-        cannot know which of several workflows the model will pick. A live run
-        exploited exactly that gap: it set `workflow` correctly and left
-        `workflow_params` as `{}`, having been told the parameter list in the
-        system prompt rather than in the schema it was decoding against.
-
-        Catching it here turns a downstream crash into a validation error the
-        model is handed back and given one chance to fix, which is cheaper than
-        either a second call or a discriminated union over every registered
-        workflow. Per-parameter validation still happens at the gate, against
-        the workflow's own model.
+        A backstop for the assembled `Plan`, since `workflow_params` is an open
+        dict that this static schema cannot type. Per-parameter validation
+        happens at the gate, against the workflow's own model.
         """
         if self.workflow and not self.workflow_params:
             raise ValueError(

@@ -1,38 +1,16 @@
-"""Talking to the model, and being able to prove afterwards what was said.
+"""Talking to the model, and proving afterwards what was said.
 
-Real calls go to the Claude API through the official SDK, using structured
-outputs so a response is a validated Pydantic object rather than prose somebody
-has to parse. Every call is recorded: the system prompt, the user content, the
-schema asked for, the parsed result, and the token usage.
+Live calls use structured outputs, so a response is a validated Pydantic object
+rather than prose to parse. Every call is recorded to `cassettes/` and can be
+replayed, which serves three jobs at once: the graded demo is reproducible, the
+tests need no network, and the audit can show the context window that produced
+a conclusion.
 
-The recording is not a test fixture bolted on afterwards. It serves three jobs
-at once, which is why it is in the main path rather than in `tests/`.
+Cassettes are keyed on the *situation*, not the prompt bytes, because prompts
+carry generated ids that differ between runs. The full prompt is stored anyway.
 
-**The demo has to be reproducible.** A graded run that produces different text
-every time cannot be checked against its own audit log. `replay` mode makes the
-scenarios deterministic without pretending the model was never involved.
-
-**Tests have to run without a network or a bill.** Everything below the planner
-is deterministic already; recording makes the planner testable on the same
-terms.
-
-**The audit has to show what the model actually saw.** "What the agent
-concluded" is not reconstructable without the context window that produced it.
-The cassette is that record, and `runs/<id>/03-prompt.json` is the readable
-copy.
-
-Modes, set by `SILO_LLM_MODE`:
-
-    auto     replay a recorded call when one exists, otherwise call the API
-             and record it. The default, and what `make demo` uses.
-    live     always call the API, never read the cassette
-    record   always call the API and overwrite the cassette
-    replay   never call the API; a missing cassette is an error
-
-Cassettes are keyed on the situation rather than on the exact bytes of the
-prompt, because the prompt contains generated identifiers that differ between
-runs. The full prompt is stored in the cassette regardless, so a reader can see
-exactly what was sent even though the key does not depend on all of it.
+`SILO_LLM_MODE`: auto (replay if recorded, else call and record), live, record,
+replay. See harness/plan/CONTEXT.md.
 """
 from __future__ import annotations
 
@@ -48,7 +26,7 @@ from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 
-DEFAULT_MODEL = "claude-opus-5"
+DEFAULT_MODEL = "claude-fable-5"
 DEFAULT_MAX_TOKENS = 8000
 
 
@@ -184,22 +162,13 @@ class AnthropicClient(LLMClient):
         return parsed, call
 
     def _call_with_one_retry(self, *, system, user, output_model, max_tokens):
-        """Call the model, and give it one chance to fix a schema violation.
+        """Call the model, giving it one chance to fix a schema violation.
 
-        Structured output constrains the shape, and it does not constrain every
-        kind of rule a schema can express. A live run returned a headline one
-        sentence over its length limit: valid JSON, right fields, right
-        content, and a `ValidationError` that discarded the whole plan.
-
-        Throwing that away and failing the run is the wrong trade. So on a
-        validation error the exact message is handed back and the model is
-        asked to correct it. One retry, not a loop: if the second attempt also
-        fails, something is wrong with the schema or the prompt rather than
-        with this particular generation, and retrying harder would only spend
-        money confirming it.
-
-        Both attempts are counted in `usage`, so a cassette that took two calls
-        says so rather than looking like a clean first pass.
+        Structured output constrains the shape, not every rule a schema can
+        express: a live run returned a headline one sentence over its length
+        limit and the whole plan was discarded. One retry carrying the error,
+        not a loop, because a second failure means the schema or the prompt is
+        wrong rather than this generation. Attempts are counted in `usage`.
         """
         from pydantic import ValidationError
 
@@ -303,15 +272,10 @@ class CassetteClient(LLMClient):
 def load_env(path: str | Path = ".env") -> None:
     """Read a local `.env` into the environment, without a dependency.
 
-    Existing variables win, so an exported key beats the file and CI never
-    picks up somebody's laptop credentials. The file is gitignored; `.env.example`
-    is the committed copy that documents what belongs in it.
-
-    Read as `utf-8-sig`, not `utf-8`. Windows PowerShell's `Set-Content
-    -Encoding utf8` writes a byte order mark, and reading that as plain UTF-8
-    turns the first variable into `﻿ANTHROPIC_API_KEY`, which resolves to
-    nothing and fails with "no API key" while the file visibly contains one.
-    `utf-8-sig` strips a BOM when present and is a no-op when it is not.
+    Existing variables win, so an exported key beats the file. Read as
+    `utf-8-sig`: Windows PowerShell writes a byte order mark, and plain
+    UTF-8 turns the first variable into a name prefixed with U+FEFF, which
+    fails with "no API key" while the file visibly contains one.
     """
     env_file = Path(path)
     if not env_file.exists():

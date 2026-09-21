@@ -1,31 +1,18 @@
-"""What a run knows, and what outlives it.
+"""What outlives a run.
 
-The split is the point, so it is worth stating plainly.
+Run-scoped memory is the run folder and the workflow's state dict, which are
+already durable and already scoped to one run. This module is the durable half,
+and it is deliberately small: only `supplier_slip` and `part_reroute`, both
+observations of events.
 
-**Run-scoped memory is the run folder.** The attention item, the context
-bundle, the prompt, the plan, the gate decision, the step outputs. It lives in
-`runs/<run-id>/` and in the `state` dict the workflow engine carries. It is not
-in this module because it does not need to be: it is already durable, already
-readable, and already scoped to exactly one run by construction.
+The rule is remember what happened, never what is true. The ERP owns current
+state, and copying it here creates a second answer that starts rotting
+immediately.
 
-**Durable memory is this table, and it is deliberately small.** Only two kinds
-of fact get promoted out of a run, and both are observations rather than
-conclusions:
-
-- `supplier.<id>.slips`: that a supplier moved a promised date, and when.
-- `part.<id>.last_reroute`: that a part's supply was rerouted, and to whom.
-
-What is *not* promoted is anything the systems of record already know. The ERP
-knows what the current promised date is. Copying it here would create a second
-answer to a question that already has one, and the second answer would start
-rotting immediately. The rule is: remember what happened, never what is true.
-The systems own what is true.
-
-**Every fact carries its age.** `recall` takes a `max_age_days` and drops what
-is older, and what it returns carries `observed_at` and `age_days` so the
-planner can see how old a belief is rather than receiving it as a timeless
-assertion. A memory with no age on it is how an agent ends up confidently
-acting on something that stopped being true in March.
+Every fact carries its age, and `recall` drops what is stale. A memory
+presented without an age is presented as a timeless truth. The gate never reads
+this, so a wrong memory can make a recommendation worse and cannot make an
+unauthorised action possible.
 """
 from __future__ import annotations
 

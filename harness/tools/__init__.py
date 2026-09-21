@@ -1,32 +1,14 @@
-"""The catalogue of things the agent can actually do, and the runner that does them.
+"""The catalogue of things the agent can do, and the runner that does them.
 
-A tool is a typed, scoped, idempotent, reversible action. Every one of those
-four words is doing work.
+A tool is typed, scoped, idempotent and reversible, and each word is load
+bearing. One Pydantic model produces both the validation at the door and the
+JSON schema shown to the model. Scopes are checked by the runner and again by
+the store. Every invocation has a key recorded with its result in the same
+transaction as the write, which is what makes a killed workflow safe to resume.
 
-**Typed.** Parameters are a Pydantic model, so the same declaration produces the
-validation at the door and the JSON schema handed to the model. A model that
-hallucinates a field gets a validation error, not a surprising write.
-
-**Scoped.** A tool declares the scopes it needs. The runner checks them before
-dispatch and the store checks them again on the way to the data. That is
-deliberate duplication: the runner's check produces a clean, auditable refusal
-with a rule attached, and the store's check is the one that holds if somebody
-later adds a tool and forgets to declare a scope.
-
-**Idempotent.** Every invocation has a key, and the key is recorded with its
-result in the same transaction as the write. Calling a tool again with the same
-key returns the first result and touches nothing. This is what makes a killed
-workflow safe to resume: replaying a step that already ran is a lookup.
-
-**Reversible.** Every tool declares a compensation, and a tool that genuinely
-cannot be undone says so in the shape of its compensation rather than by
-omitting one. Mail is the honest case: you cannot unsend, so the compensation
-sends a correction and says that is what it did. An engine that believed the
-step had been erased would be lying to whoever reads the audit log.
-
-To add a tool: drop a module here, declare a params model, decorate the runner
-with `@tool(...)`, write its compensation, and add the module to `_load()`.
-Nothing in the kernel changes.
+Compensations report what they actually achieved. Reversing a record change is
+not the same as unsending an email, and a tool that cannot undo its effect says
+so rather than claiming otherwise. See CONTEXT.md.
 """
 from __future__ import annotations
 

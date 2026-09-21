@@ -1,28 +1,13 @@
 """The glass box: one folder per run, readable without running anything.
 
-This is the harness's debt to the Interpretable Context Methodology. The store
-is the state machine, and the filesystem is the explanation surface. Every run
-leaves a folder of numbered plain files:
+The store is the state machine; the filesystem is the explanation surface.
+Every run leaves numbered plain files: what the detector noticed, what each
+provider returned, the exact context window, the plan, each gate rule, the
+approval, each step, and the mirrored audit.
 
-    runs/run-a1b2c3/
-      01-attention.json     what the detector noticed, and why it was not a duplicate
-      02-context.json       what each provider returned, per system
-      03-prompt.json        exactly what went into the model's context window
-      04-plan.json          what came back, parsed and validated
-      05-gate.json          each rule, its verdict, and the rule that decided
-      06-approval.json      who was asked, why them, what they said
-      07-steps/             one file per executed step, with its idempotency key
-      08-followup.json      what was scheduled and for when
-      audit.jsonl           the mirrored ledger, in order
-
-Numbering encodes order, which is the one place in a Python project where the
-convention costs nothing: these are artifacts, not importable modules.
-
-Nothing here is authoritative. Delete the whole `runs/` tree and the harness
-still knows everything it knew, because the store holds the state and the audit
-log holds the history. What you lose is the ability to understand a run by
-opening a folder, which turns out to be most of what anyone wants during an
-incident.
+Nothing here is authoritative. Delete `runs/` and the harness knows everything
+it knew; what is lost is the ability to understand a run by opening a folder,
+which turns out to be most of what anyone wants during an incident.
 """
 from __future__ import annotations
 

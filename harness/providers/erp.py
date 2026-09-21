@@ -26,12 +26,10 @@ from . import ProviderResult, provider
 def projected_stockout(part: dict, clock: Clock) -> dict:
     """Days of cover at the current usage rate, reported two ways.
 
-    `days_of_cover` nets off safety stock, because consuming the safety stock
-    is already the exception the scenario exists to avoid, and that is the
-    number a detector should trigger on. `days_to_empty` is the raw shelf count
-    a person would quote in a meeting. Both are returned because they differ
-    and a recommendation that cites one while the reader is thinking of the
-    other reads as an error even when the arithmetic is right.
+    `days_of_cover` nets off safety stock and is what a detector triggers on.
+    `days_to_empty` is the raw shelf count a person would quote. Both, because
+    they differ, and citing one while the reader thinks of the other reads as
+    an error even when the arithmetic is right.
     """
     on_hand = float(part.get("on_hand", 0))
     daily = float(part.get("daily_usage", 0) or 0)

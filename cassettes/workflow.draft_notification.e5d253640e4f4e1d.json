@@ -1,17 +1,17 @@
 {
   "key": "workflow.draft_notification.e5d253640e4f4e1d",
   "purpose": "workflow.draft_notification",
-  "model": "claude-opus-5",
+  "model": "claude-fable-5",
   "schema": "NotificationDraft",
   "system": "Write a short internal notice to a production supervisor about a change in\nmaterial supply for one of their orders.\n\nConstraints, all of them hard:\n- State only the facts given to you. Do not add a cause, an apology, a promise,\n  or a detail that is not in the input.\n- Name the production order, the new supplier, and the date the material is\n  expected.\n- Plain text. No greeting, no sign-off, no bullet characters.\n- No em dashes and no double hyphens. Use a full stop when the two halves are\n  whole thoughts, a comma for an aside, a colon when the second half defines\n  the first.\n- Four sentences at most.\n",
   "user": "Production order: 4812\nPart: P-4471\nNew supplier: Meridian Drives\nExpected on the dock: 2026-09-04\nPrevious order PO-77812 has been amended.",
   "output": {
-    "subject": "Production order 4812: material now supplied by Meridian Drives",
-    "body": "Production order 4812 will be supplied with part P-4471 from Meridian Drives. The material is expected on the dock on 2026-09-04. Previous order PO-77812 has been amended."
+    "subject": "Material supply change for production order 4812",
+    "body": "The material supply for production order 4812 has changed. Part P-4471 will now come from a new supplier: Meridian Drives. The material is expected on the dock on 2026-09-04. Previous order PO-77812 has been amended."
   },
   "usage": {
     "input_tokens": 549,
-    "output_tokens": 125,
+    "output_tokens": 120,
     "cache_read_input_tokens": 0,
     "attempts": 1
   },

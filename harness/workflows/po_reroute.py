@@ -1,48 +1,27 @@
 """po_reroute v1: move an at-risk purchase order to an approved alternate.
 
-Purchasing's words, which this definition implements literally:
+Purchasing's words, implemented literally: confirm the alternate supplier is
+approved for the part, confirm their lead time meets the production date,
+create the new PO, cancel or reduce the old one, notify production, schedule
+the arrival check. In that order, every time.
 
-    confirm the alternate supplier is approved for the part
-    -> confirm their lead time meets the production date
-    -> create the new PO
-    -> cancel or reduce the old one
-    -> notify production
-    -> schedule the arrival check
-    In that order. Every time.
+Seven steps, not six. Purchasing's list assumes a supplier already in hand, and
+something has to pick it, so selection is step one inside the definition where
+it is bounded and logged.
 
-There are seven steps here rather than six. The extra one is first, and the
-reason is that purchasing's sentence begins with a supplier already in hand.
-Something has to pick it. Making that a declared step keeps the choice inside
-the definition, where it is bounded and logged, instead of leaving it to
-whatever the planner happened to put in the parameters.
+Three independent mechanisms keep that selection honest, and they fail
+separately:
 
-That first step is also where the model is allowed to reason, and it is worth
-being precise about how little it can do. Three mechanisms stack, and they fail
-independently:
+1. Code filters candidates to suppliers approved *for this part*.
+2. That list becomes an enum in the request schema, so the model cannot name
+   anything else. Added after a live call answered "S-Z Meridian Drives"
+   instead of "S-Z".
+3. The step re-checks the answer and step two re-derives approval from the
+   supplier record.
 
-1. **Code computes the candidate list.** Suppliers who are approved, approved
-   *for this specific part*, and not the one that just slipped. Everything else
-   is gone before the model is involved at all.
-2. **The candidate list becomes an enum in the request schema.** The model is
-   not asked in prose to pick from a list; the schema it decodes against
-   contains only those ids. This one was added after a live call returned
-   "S-Z Meridian Drives" instead of "S-Z", which is a perfectly sensible answer
-   to the question the model thought it was being asked and is outside the set.
-   A firmer instruction would have made that rarer, not impossible.
-3. **The step re-checks the answer, and step two re-derives approval from the
-   supplier record.** Both would be redundant if the layer above always held.
-   The point of defence in depth is that you do not find out it did not hold by
-   having a purchase order appear.
-
-The seeded world contains a supplier that is approved, quotes the lowest price
-on file for this part, ships in one day, and emails an unsolicited offer on the
-morning of the scenario. It is not approved for this part. It has to get past
-all three to be chosen, and it does not get past the first.
-
-The second model step drafts the notification text. Its output is checked for
-the facts it must contain, and a deterministic template takes over if the check
-fails. A workflow that wedges because a model wrote an unusable paragraph has
-turned a language problem into an outage.
+The seeded world contains a supplier that is approved, cheapest on file, ships
+next day, and emails an offer that morning. It is not approved for this part,
+and it does not get past the first mechanism.
 """
 from __future__ import annotations
 
@@ -117,18 +96,11 @@ class SupplierChoice(BaseModel):
 def choice_model(candidate_ids: list[str]) -> type[BaseModel]:
     """Build the output schema from the candidate list, at call time.
 
-    This is the difference between instructing a model and constraining one.
-    Asked in prose to return an id from a list, a real model returned
-    "S-Z Meridian Drives" rather than "S-Z": a reasonable answer to the
-    question it thought it was being asked, and outside the set. Telling it
-    more firmly would reduce how often that happens without changing what is
-    possible.
-
-    So the permitted values become an enum in the JSON schema handed to the
-    API. The model cannot emit a supplier outside the candidate list, because
-    the schema it is decoding against does not contain one. The check in
-    `_choose_supplier` stays anyway: structured output is a strong guarantee
-    and the workflow should not be the place we find out it was not.
+    The difference between instructing a model and constraining one. Asked in
+    prose for an id from a list, a live call returned "S-Z Meridian Drives":
+    reasonable, and outside the set. As an enum the model cannot emit anything
+    else. `_choose_supplier` checks anyway, because the workflow should not be
+    where we discover the guarantee did not hold.
     """
     return create_model(
         "SupplierChoice",

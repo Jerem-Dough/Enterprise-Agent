@@ -1,28 +1,14 @@
 """Context gathering, one provider per system, scoped to the user.
 
-A provider turns a focus (a part, a production order, a lot) into the records
-from one system that bear on it. It never decides anything. It is handed a
-`ScopedStore` and cannot reach past it, so "scoped to what this user can see"
-is a property of the handle rather than a rule each provider has to remember.
+A provider turns a focus into the records from one system that bear on it. It
+never decides anything, and it cannot reach past the `ScopedStore` it is given.
 
-Three behaviours matter more than the gathering itself.
+A scope denial is data, not a crash: the provider records it in `omitted` and
+returns what it could read, so the plan reasons over a bundle that says plainly
+what the user was not allowed to see. Everything returned is addressable by
+system, kind and id, so a claim can be traced to the row supporting it.
 
-**A denial is data, not a crash.** If the principal lacks a scope the provider
-needs, the provider records the denial in `omitted` and returns what it could
-read. The plan then reasons over a context bundle that says plainly what the
-user was not allowed to see, and the audit log shows the same. An agent that
-silently gathers less is worse than one that says what it missed.
-
-**Providers declare their scopes.** The kernel skips a provider the principal
-cannot use at all, and audits the skip, instead of running it to collect a pile
-of denials.
-
-**Everything returned is addressable.** Each record carries the system, kind,
-and id it came from, so a claim in the model's recommendation can be traced to
-the row that supports it. Nothing in the bundle is prose.
-
-To add a provider: drop a module in this folder, decorate a function with
-`@provider(...)`, and import it in `_load()` below. Nothing else changes.
+To add one: a module here, an `@provider` decorator, one line in `_load()`.
 """
 from __future__ import annotations
 

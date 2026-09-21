@@ -1,28 +1,19 @@
 """Scenario A's trigger: a supplier writes about an open PO the line depends on.
 
-The condition this fires on is narrower than it first looks, and the narrowing
-is the interesting part.
+The condition is narrower than it looks, and the narrowing is the point. Firing
+on "a supplier emailed" is noise. Firing on "a part will run short" never fires
+here, because on paper nothing is wrong: the order is promised the 4th and
+production starts the 7th. The situation exists only because a supplier said
+something in prose that contradicts the ERP.
 
-Firing on "a supplier emailed" alone is noise. Firing on "a part will run short"
-alone never fires here, because on paper nothing is wrong: PO-77812 is promised
-on the 4th and production order 4812 starts on the 7th. The situation only
-exists because a supplier said something in prose that contradicts the ERP.
+So it fires on the conjunction: a message from a supplier holding an open PO,
+where that PO's part cannot cover the next production order from stock on hand.
+Both filters earn their keep against the seed, where two suppliers have written
+about parts they supply and only one of those parts is tight.
 
-So the detector looks for the *conjunction*: a message from the contact address
-of a supplier who holds an open PO, where that PO's part cannot cover the next
-production order that consumes it from stock on hand alone. If the part could
-cover it without the PO, a slipped delivery is an inconvenience and not an
-attention item.
-
-The detector deliberately does not read what the email says. Understanding that
-"Monday 9/7, which puts it on your dock Tuesday 9/8" means the promised date
-moved from the 4th to the 8th is a language problem, and language problems
-belong to the planner, where the reasoning lands in a context bundle somebody
-can read. Here we only establish that a supplier has spoken about an order that
-matters. That keeps the false positive rate something you can compute.
-
-Both filters earn their keep against the seed. Two suppliers have written to
-Dana about parts they hold open POs for. Only one of those parts is tight.
+It deliberately does not read what the email says. Understanding "Monday 9/7,
+on your dock Tuesday 9/8" is a language problem, and those belong to the
+planner where the reasoning lands in a bundle somebody can read.
 """
 from __future__ import annotations
 

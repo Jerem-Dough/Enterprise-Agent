@@ -204,14 +204,42 @@ strictly better and is the version I would have written if concurrency were in
 scope.
 
 **4. Cost, which is a scaling limit even when nothing is technically broken.**
-Every attention item is a planner call with a context bundle of a few thousand
-tokens. At thousands of employees that is the dominant operating cost and it
-rises linearly with headcount. Three levers, in the order I would pull them:
-the event-driven detectors above (fewer items), prompt caching on the stable
-system prefix (already wired: the tool catalogue and rules are cached, only the
-bundle varies), and a cheaper model for the bounded in-workflow steps, which are
-constrained choices over a filtered list and do not need the frontier model the
-planner uses.
+Measured, from the committed cassettes on `claude-fable-5`:
+
+| Call | Input | Output |
+|---|---|---|
+| `plan` (Scenario A) | 4,003 | 1,466 |
+| `plan` (Scenario B) | 4,044 | 1,852 |
+| `plan.workflow_params` | 4,411 | 310 |
+| `workflow.select_supplier` | 131 | 153 |
+| `workflow.draft_notification` | 549 | 112 |
+
+Two things fall out of that table. The planner calls dominate, at roughly 4k
+input each, and the two bounded workflow steps are trivial by comparison: 131
+and 549 input tokens, because they are given a filtered list rather than the
+world. And `plan.workflow_params` costs almost as much input as the plan itself,
+because it resends the whole bundle to fill six fields.
+
+So the levers, in the order I would pull them:
+
+1. **Fewer items**, via the event-driven detectors above. A poll that finds
+   nothing still pays for its queries, and this is the only lever that reduces
+   calls rather than the cost of each.
+2. **Cache the bundle, not just the system prefix.** Caching is already wired
+   on the system block (tool catalogue and rules), which is the stable part.
+   The bigger win is that `plan` and `plan.workflow_params` share a ~4k bundle
+   back to back, and the second call currently pays full price for it. Moving
+   the bundle ahead of the last cache breakpoint would make the parameters call
+   nearly free.
+3. **A cheaper model for the bounded steps.** `select_supplier` picks from a
+   two-item list against an enum schema, and `draft_notification` writes four
+   sentences with a deterministic fallback if it gets them wrong. Neither needs
+   a frontier model. At these token counts the saving is small in absolute
+   terms, which is exactly why it is third: it is the lever people reach for
+   first and it is worth the least here.
+
+Judge cost per resolved attention item rather than per call. A cheaper model
+that proposes something the gate refuses has not saved anything.
 
 **5. The audit hash chain serialises writes.** Each entry reads the previous
 hash, so concurrent runs contend on the tail. At scale I would chain **per run**

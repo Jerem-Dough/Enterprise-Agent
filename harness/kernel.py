@@ -1,23 +1,16 @@
 """The loop. Detect, gather, plan, gate, wait for a human, execute, follow up.
 
-This module is small on purpose, and the size is the argument. Everything
-domain-shaped lives in a registry: providers, detectors, tools, workflows. The
-kernel knows the *order* of the phases and nothing about purchasing, quality,
-suppliers or lots. Scenario B added a detector, a provider, two tools and a
-user, and changed nothing in this file.
+Small on purpose, and the size is the argument: everything domain-shaped lives
+in a registry, and this file knows the order of the phases and nothing about
+suppliers, lots or purchase orders. Scenario B added a detector, a provider,
+two tools and a user, and changed nothing here.
 
-The phase boundaries are where the guarantees sit:
+The phase boundaries are where the guarantees sit. Nothing is gathered except
+through a scoped handle, planned except from a gathered bundle, gated except as
+a validated plan, or executed except with a recorded human approval.
 
-- nothing is gathered except through a provider holding a scoped handle
-- nothing is planned except from a gathered bundle
-- nothing is gated except a parsed, validated plan
-- nothing is executed except a gated plan with a recorded human approval
-- nothing happens at all without an audit entry, written in the same
-  transaction as the effect
-
-A run stops at the approval boundary and returns. It does not block, poll or
-sleep. Resuming is a separate call with the approval id, which is what makes
-the pause survive a restart: the pending state is a row, not a stack frame.
+A run stops at the approval boundary and returns rather than blocking, so the
+pause survives a restart: the pending state is a row, not a stack frame.
 """
 from __future__ import annotations
 
@@ -339,14 +332,12 @@ class Harness:
         }
 
     def _execute_actions(self, plan, scoped, run_id) -> dict:
-        """The free-form path. Sequential, and it stops at the first failure.
+        """The free-form path. Sequential, stopping at the first failure.
 
-        No compensation here, and the omission is deliberate rather than
-        missing. Compensation needs a declared order to unwind; a free-form
-        list has no contract about what the earlier actions meant. Work that
-        needs unwinding is work that should have been a workflow, and the
-        planner is told so. What happens instead is that execution stops and
-        the audit log says exactly how far it got.
+        No compensation, deliberately: unwinding needs a declared order, and a
+        free-form list has no contract about what its earlier actions meant.
+        Work that needs unwinding should have been a workflow. Execution stops
+        and the audit log says how far it got.
         """
         results = []
         for index, action in enumerate(plan.actions):
@@ -430,17 +421,11 @@ class Harness:
     def _check_po_arrival(self, task, principal, scoped) -> dict:
         """Did the replacement actually land?
 
-        If it did, say so and stop. If it did not, do two things: re-enter the
-        loop from the top with a fresh attention item, and queue another check
-        for the next working day. The agent keeps watching until the material
-        turns up or a person intervenes, which is what a buyer would do.
-
-        The dedupe key is the order, not the day. A shipment that is late on
-        Friday and still late on Tuesday is one unresolved situation, not
-        three, so the first miss raises an item and the later ones are
-        suppressed against it while still being recorded. Keying on the date
-        instead would page somebody every morning about the same late pallet,
-        which is how agents get muted.
+        On a miss, re-enter the loop with a fresh attention item and queue
+        another check for the next working day. The dedupe key is the order,
+        not the day: one late pallet is one unresolved situation across every
+        check, and keying on the date would page somebody every morning about
+        it, which is how agents get muted.
         """
         context = task["payload"]["context"]
         po_id = context.get("po_id")

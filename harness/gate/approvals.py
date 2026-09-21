@@ -1,29 +1,14 @@
 """Approval requests, decisions, and the backup routing rule.
 
-The rule the brief states: *if an approval request is unanswered at end of day
-and the approver's calendar shows them out the next day, it routes to their
-designated backup.*
+The rule: if a request is unanswered at end of day *and* the approver's
+calendar shows them out the next day, it routes to their designated backup.
 
-Three things about how that is implemented are deliberate.
-
-**Rerouting is time-driven, not request-driven.** The condition includes "at end
-of day", which has not happened when the request is created. So routing to a
-backup is a thing that happens to a *pending* request when the clock passes a
-threshold, evaluated by `reroute_stale` on every tick. Deciding the backup up
-front would answer a question the world has not asked yet.
-
-**Authority does not transfer with the request.** The backup is checked against
-the same limits as anyone else. Dana's designated backup holds a lower limit
-than Dana, so a request that Dana could have approved may be one that Marcus
-cannot, and in that case it escalates rather than lands on a desk that cannot
-act on it. An approval routed to somebody without the authority to grant it is
-worse than no routing, because it looks like progress.
-
-**A decision is checked, not recorded.** `decide` verifies that the person
-answering is the person asked and that their limit covers the value. It is
-perfectly possible to build this as a status update and trust the caller. The
-whole point of the harness is that the interesting failures come from trusting
-a layer that had no reason to be trusted.
+Rerouting is time-driven, not request-driven, because "at end of day" has not
+happened when the request is created. Authority does not travel with the
+request: the backup is re-checked against their own limit, and a request they
+cannot approve escalates instead of landing on a desk that cannot act. And a
+decision is verified, not merely recorded, because the interesting failures
+come from trusting a layer that had no reason to be trusted.
 """
 from __future__ import annotations
 

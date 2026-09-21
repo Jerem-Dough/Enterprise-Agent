@@ -1,40 +1,20 @@
 """Declared workflows: the definition is in charge, not the model.
 
-Purchasing's requirement was specific. "The steps are fixed. In that order.
-Every time." So the reroute is a declared graph, and the planner's authority
-stops at the boundary: it decides *whether* to enter the workflow and supplies
-its parameters, and from there the definition decides everything.
+Purchasing fixed the steps and their order, so the planner's authority stops at
+the boundary. It decides whether to enter a workflow and supplies parameters;
+everything after that is the definition.
 
-How that guarantee is actually enforced, rather than merely intended:
+What makes that structural rather than intended:
 
-**Order comes from a tuple, not from a plan.** `definition.steps` is an
-immutable sequence. The engine walks it by index. There is no parameter, plan
-field or model output that can reorder, skip or insert a step. The plan schema
-refuses to carry both a workflow and free-form actions, so a model cannot append
-a seventh action by putting it somewhere else.
+- `steps` is an immutable tuple walked by index, so nothing can reorder or
+  insert a step.
+- `Plan` refuses to carry a workflow and free-form actions together, so a model
+  cannot append one by putting it elsewhere.
+- Idempotency keys are `instance:step`, not a hash of arguments, so a resumed
+  step that recomputes a parameter cannot write twice.
 
-**Model steps are bounded by construction.** A step that asks the model to
-choose does so over a candidate list that code computed, and validates that the
-answer is one of the candidates. A step that asks the model to write text
-validates the text against required facts and falls back to a deterministic
-template. The model is never the thing that decides whether a step runs.
-
-**State is persisted after every step.** Each step writes its row, its output
-and the new cursor in one transaction. A process killed between steps resumes
-at the cursor with everything before it intact, and because every tool call
-carries an idempotency key derived from the instance and step id, a step that
-half-ran and was retried is a lookup rather than a second write.
-
-**Failure compensates backwards.** When a step fails, completed steps are
-compensated in reverse order, each as the principal that ran it. Compensation
-reports what it actually achieved: reversing a record change is not the same as
-unsending a notification, and the engine records the difference rather than
-flattening both into "rolled back".
-
-**Definitions carry a version.** An instance records the version it started
-under and refuses to resume against a different one. Migrating in-flight
-instances across a version change is a design question; refusing loudly is the
-honest floor.
+State persists after every step; a failure compensates backwards, as the same
+principal, and records what it could not undo. See CONTEXT.md.
 """
 from __future__ import annotations
 
