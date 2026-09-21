@@ -461,3 +461,66 @@ the loop** rather than abandon: the situation that triggered the workflow is
 probably still true, and re-detecting it produces a fresh plan against the
 current definition. That path already exists: it is what the follow-up check
 does when a shipment has not arrived.
+
+---
+
+## 8. What only a real model call found
+
+Everything below the planner is deterministic, so the harness was fully working
+against a scripted client before a single live call was made. That was the
+right order to build in and it hid four defects, each of which is worth more
+than the feature it broke.
+
+**A schema that cannot hold the answer looks like a disobedient model.** The
+plan's `workflow_params` was typed `dict`, which Pydantic renders as
+`{"type": "object"}` with no properties. Constrained decoding against that can
+emit `{}` and nothing else. The model chose `po_reroute` correctly and returned
+empty parameters, twice, including on a retry that handed it the validation
+error verbatim. It read like an instruction-following failure and it was a
+schema bug. `ProposedAction.params` had the identical flaw, found separately a
+few minutes later, which is the more useful half of the story: the same mistake
+in two places, because the fix for the first one was applied to the first one
+rather than to the pattern.
+
+The general rule I would take to any project: **when a model persistently
+leaves a field empty, read the JSON schema it is decoding against before
+rewriting the prompt.** Open containers are not fillable. Workflow parameters
+are now a second call against the workflow's own concrete model; free-form
+actions are a tagged union with one variant per tool the user may run, so the
+arguments are real properties and a tool outside the catalogue is unnameable.
+
+**A prose instruction is not a constraint.** Asked, clearly, to return a
+supplier id from an offered list, a live call returned `"S-Z Meridian Drives"`.
+That is a reasonable answer to the question the model thought it was asked, and
+it is outside the permitted set. Saying it more firmly would have made it rarer
+and not impossible. The candidate list is now an enum in the request schema, so
+the bound is structural, with the step's own check kept underneath because the
+point of defence in depth is not finding out the top layer failed by having a
+purchase order appear.
+
+**A validation ceiling picked by guesswork discards good work.** The headline
+had `max_length=400`, a number chosen by imagining how long "one short
+paragraph" is. A real headline naming two dates, a part, an order and a
+supplier is longer than that, and a correct plan was thrown away validating it.
+Limits on generative fields should be set from observed output, and a schema
+violation should cost one retry rather than the whole run.
+
+**Encoding bugs hide in the one file nobody reads.** `.env` was read as
+`utf-8`. Windows PowerShell writes a BOM, so the first variable parsed as
+`\ufeffANTHROPIC_API_KEY`, and the harness reported no API key while the file
+plainly contained one.
+
+None of these were reachable from the scripted client, because a scripted
+client returns what the author already believes the model will return. That is
+exactly what makes it useful for testing the gate and useless for testing the
+boundary. The cassettes are the compromise: recorded from real calls, replayed
+deterministically, so the tests stay fast and the thing they replay actually
+happened.
+
+One consequence worth noting for the evaluation section above. The live model
+chose to reroute 120 units, the shortfall at the production order's start,
+rather than the full 400 on the original order. That made `amend_original_po`
+take its *reduce* branch instead of *cancel*, a path the scripted client never
+exercised and which the audit log shows working: `PO-77812` went from 400 units
+to 280 rather than being cancelled outright. It is a better answer than the one
+I scripted, and I would not have known to write the test for it.

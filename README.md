@@ -31,9 +31,11 @@ client and no API key, which is what CI uses.
 
 ### Without a key
 
-The model is called in three places: the planner, and two bounded steps inside
-the reroute workflow. Every call is recorded to `cassettes/` and replayed on
-later runs, so a repo with cassettes committed runs the full demo offline:
+The model is called in four places: the planner, a second call that fills the
+chosen workflow's parameters against its own schema, and two bounded steps
+inside the reroute workflow. Every call is recorded to `cassettes/` and
+replayed on later runs, so a repo with cassettes committed runs the full demo
+offline:
 
 ```bash
 SILO_LLM_MODE=replay python silo.py demo
