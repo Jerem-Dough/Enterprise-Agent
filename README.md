@@ -266,6 +266,8 @@ floor and silence would be the dangerous alternative.
 
 ## Documents
 
+- [`DECISIONS.md`](DECISIONS.md): the open calls that need a human, and what I
+  chose not to build
 - [`MODEL.md`](MODEL.md): what I modelled, what I kept, changed, added and left
   out, and two deliberate deviations from the brief
 - [`docs/DESIGN.md`](docs/DESIGN.md): identity and authorization, long-term
