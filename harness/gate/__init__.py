@@ -32,9 +32,12 @@ and which no `ScopedStore` exposes.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Literal
+
+from pydantic import ValidationError
 
 from ..audit import AuditLog
 from ..clock import Clock
@@ -119,6 +122,7 @@ class Gate:
 
         required_scopes, facts = self._effects(plan, scoped_store)
 
+        checks.extend(self._check_plan_is_runnable(facts))
         checks.extend(self._check_permissions(plan, principal, required_scopes))
         checks.extend(self._check_purchase_policy(facts, policy, scoped_store))
         checks.extend(self._check_quality_policy(facts, policy, scoped_store))
@@ -156,8 +160,25 @@ class Gate:
         if plan.workflow:
             from .. import workflows
 
-            definition = workflows.get(plan.workflow)
-            params = definition.params_model.model_validate(plan.workflow_params)
+            try:
+                definition = workflows.get(plan.workflow)
+            except KeyError:
+                return set(), {"path": "workflow", "workflow": plan.workflow,
+                               "unknown_workflow": True}
+            try:
+                params = definition.params_model.model_validate(plan.workflow_params)
+            except ValidationError as error:
+                # A plan naming a workflow it cannot supply parameters for is a
+                # refusal with a rule attached, not an exception. The gate is
+                # the layer that turns bad model output into a decision, and a
+                # stack trace here would take the run down instead.
+                return set(definition.required_scopes()), {
+                    "path": "workflow",
+                    "workflow": definition.name,
+                    "version": definition.version,
+                    "invalid_parameters": json.loads(error.json()),
+                    "supplied": plan.workflow_params,
+                }
             facts = definition.gate_facts(params, scoped_store)
             # Every candidate the workflow could land on is an intent, because
             # approval is granted before the choice is made.
@@ -226,6 +247,36 @@ class Gate:
             "original_unit_price": baseline,
             "worst_case_value": round(value, 2),
         }
+
+    @staticmethod
+    def _check_plan_is_runnable(facts: dict) -> list[Check]:
+        """Refuse a plan the gate could not even interpret.
+
+        Fails closed and names why, rather than letting a malformed plan fall
+        through the remaining rules, pass them vacuously because there is
+        nothing to check, and reach a human as an approval request.
+        """
+        if facts.get("unknown_workflow"):
+            return [Check(
+                "workflow.exists", "fail",
+                f"the plan names workflow {facts.get('workflow')!r}, which is "
+                f"not registered",
+                {"workflow": facts.get("workflow")},
+            )]
+        if facts.get("invalid_parameters"):
+            missing = [
+                ".".join(str(p) for p in e.get("loc", []))
+                for e in facts["invalid_parameters"]
+            ]
+            return [Check(
+                "workflow.parameters_valid", "fail",
+                f"the plan chose {facts.get('workflow')} without valid "
+                f"parameters: {', '.join(missing)}",
+                {"workflow": facts.get("workflow"),
+                 "supplied": facts.get("supplied"),
+                 "errors": facts["invalid_parameters"]},
+            )]
+        return []
 
     # -- permission rules --------------------------------------------------
 

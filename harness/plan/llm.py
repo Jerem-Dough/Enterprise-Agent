@@ -160,26 +160,10 @@ class AnthropicClient(LLMClient):
         output_model: type[T],
         max_tokens: int = DEFAULT_MAX_TOKENS,
     ) -> tuple[T, ModelCall]:
-        # The system prompt is the stable prefix across every call of a given
-        # purpose (the tool catalogue, the rules, the output contract), and the
-        # user content is the part that changes per run. Caching the system
-        # block is therefore free and correct.
-        response = self._client.messages.parse(
-            model=self.model,
+        response, parsed, attempts = self._call_with_one_retry(
+            system=system, user=user, output_model=output_model,
             max_tokens=max_tokens,
-            system=[
-                {"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}
-            ],
-            messages=[{"role": "user", "content": user}],
-            output_format=output_model,
-            thinking={"type": "adaptive"},
         )
-        if response.stop_reason == "refusal":
-            raise ModelUnavailable(
-                f"the model declined this request: {response.stop_details}"
-            )
-
-        parsed = response.parsed_output
         call = ModelCall(
             key=cassette_key(purpose, situation, output_model.__name__),
             purpose=purpose,
@@ -194,9 +178,72 @@ class AnthropicClient(LLMClient):
                 "cache_read_input_tokens": getattr(
                     response.usage, "cache_read_input_tokens", 0
                 ),
+                "attempts": attempts,
             },
         )
         return parsed, call
+
+    def _call_with_one_retry(self, *, system, user, output_model, max_tokens):
+        """Call the model, and give it one chance to fix a schema violation.
+
+        Structured output constrains the shape, and it does not constrain every
+        kind of rule a schema can express. A live run returned a headline one
+        sentence over its length limit: valid JSON, right fields, right
+        content, and a `ValidationError` that discarded the whole plan.
+
+        Throwing that away and failing the run is the wrong trade. So on a
+        validation error the exact message is handed back and the model is
+        asked to correct it. One retry, not a loop: if the second attempt also
+        fails, something is wrong with the schema or the prompt rather than
+        with this particular generation, and retrying harder would only spend
+        money confirming it.
+
+        Both attempts are counted in `usage`, so a cassette that took two calls
+        says so rather than looking like a clean first pass.
+        """
+        from pydantic import ValidationError
+
+        messages = [{"role": "user", "content": user}]
+        for attempt in (1, 2):
+            try:
+                # The system prompt is the stable prefix across every call of a
+                # given purpose (the tool catalogue, the rules, the output
+                # contract), and the user content is what changes per run.
+                # Caching the system block is therefore free and correct.
+                response = self._client.messages.parse(
+                    model=self.model,
+                    max_tokens=max_tokens,
+                    system=[{"type": "text", "text": system,
+                             "cache_control": {"type": "ephemeral"}}],
+                    messages=messages,
+                    output_format=output_model,
+                    thinking={"type": "adaptive"},
+                )
+            except ValidationError as error:
+                if attempt == 2:
+                    raise ModelUnavailable(
+                        f"the model's output failed {output_model.__name__} "
+                        f"validation twice: {error}"
+                    ) from error
+                messages = messages + [
+                    {
+                        "role": "user",
+                        "content": (
+                            "Your previous response did not satisfy the output "
+                            f"schema. Fix exactly this and change nothing else:\n\n"
+                            f"{error}"
+                        ),
+                    }
+                ]
+                continue
+
+            if response.stop_reason == "refusal":
+                raise ModelUnavailable(
+                    f"the model declined this request: {response.stop_details}"
+                )
+            return response, response.parsed_output, attempt
+
+        raise ModelUnavailable("unreachable")  # pragma: no cover
 
 
 class CassetteClient(LLMClient):
@@ -259,11 +306,17 @@ def load_env(path: str | Path = ".env") -> None:
     Existing variables win, so an exported key beats the file and CI never
     picks up somebody's laptop credentials. The file is gitignored; `.env.example`
     is the committed copy that documents what belongs in it.
+
+    Read as `utf-8-sig`, not `utf-8`. Windows PowerShell's `Set-Content
+    -Encoding utf8` writes a byte order mark, and reading that as plain UTF-8
+    turns the first variable into `﻿ANTHROPIC_API_KEY`, which resolves to
+    nothing and fails with "no API key" while the file visibly contains one.
+    `utf-8-sig` strips a BOM when present and is a no-op when it is not.
     """
     env_file = Path(path)
     if not env_file.exists():
         return
-    for line in env_file.read_text(encoding="utf-8").splitlines():
+    for line in env_file.read_text(encoding="utf-8-sig").splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue

@@ -54,6 +54,14 @@ two halves are whole thoughts, a comma for an aside, a colon when the second
 half defines the first. Do not fix these with find and replace; read the clause
 and pick the punctuation it needs.
 
+Where the text is generated, the rule is enforced by rejection, not by
+rewriting. The workflow's notification step checks the draft and falls back to
+its deterministic template, because substituting punctuation blindly produces
+sentences like "deliberately quiet. a ledger, a queue". Be honest about the
+limit: for a free-form action, where there is no template to fall back to, the
+rule is prompt-level only. Failing a real supply notification over a dash is
+the wrong trade, and pretending the guarantee is total would be worse.
+
 ## Conventions
 
 Python 3.13, SQLite, Pydantic for anything a model produces or a tool accepts.

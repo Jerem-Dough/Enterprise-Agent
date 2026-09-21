@@ -79,7 +79,22 @@ def test_the_model_only_sees_suppliers_approved_for_the_part(harness):
     assert offered == {"S-Z", "S-W"}
 
 
+def test_the_candidate_list_is_an_enum_in_the_request_schema(harness):
+    """The first bound, and the strongest: the model decodes against a schema
+    that does not contain a supplier outside the candidate list."""
+    from harness.workflows.po_reroute import choice_model
+
+    schema = choice_model(["S-Z", "S-W"]).model_json_schema()
+    assert schema["properties"]["supplier_id"]["enum"] == ["S-Z", "S-W"]
+    assert "S-Q" not in schema["properties"]["supplier_id"]["enum"]
+
+
 def test_a_choice_outside_the_offered_set_fails_the_step(make_harness):
+    """The second bound, exercised by simulating the first one failing.
+
+    `bad_choice` returns an unvalidated payload, which is what a model or an
+    API that ignored the enum would produce. The step must still refuse it.
+    """
     harness = make_harness(bad_choice=True)
     execution = approve_and_execute(harness)
 
@@ -107,6 +122,36 @@ def test_an_unusable_draft_falls_back_without_wedging(make_harness):
                   if s["step_id"] == "notify_production")["output"]
     assert notify["used_fallback_text"] is True
     assert "omitted" in notify["fallback_reason"]
+
+
+def test_a_draft_using_banned_punctuation_falls_back(make_harness):
+    """House style is enforced by rejection, never by rewriting.
+
+    A blind substitution produces sentences like "deliberately quiet. a
+    ledger, a queue", so the draft is discarded and the deterministic template
+    goes out instead.
+    """
+    import stub_llm
+
+    harness = make_harness()
+    harness.llm.script["workflow.draft_notification"] = {
+        "subject": "Supply change for production order 4812",
+        "body": (
+            "Material supply for production order 4812 has changed \u2014 it is "
+            "now coming from Meridian Drives and is expected on 2026-09-04. "
+            "The previous order has been amended."
+        ),
+    }
+    execution = approve_and_execute(harness)
+    notify = next(s for s in execution.execution["steps"]
+                  if s["step_id"] == "notify_production")["output"]
+
+    assert notify["used_fallback_text"] is True
+    assert "punctuation" in notify["fallback_reason"]
+
+    sent = [m for m in harness.store.documents("messages")
+            if m["message_id"] == notify["message_id"]][0]
+    assert "\u2014" not in sent["body"], "an em dash reached a colleague"
 
 
 def test_a_good_draft_is_used_and_its_facts_are_verified(harness):

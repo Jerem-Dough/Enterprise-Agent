@@ -18,6 +18,20 @@ from collections.abc import Callable
 from harness.plan.llm import LLMClient, ModelCall, ModelUnavailable, cassette_key
 
 
+class Unvalidated(dict):
+    """A scripted answer that bypasses schema validation on the way out.
+
+    Needed to test defence in depth. The supplier choice step now carries its
+    candidate list as an enum in the JSON schema, so a well-behaved API cannot
+    return a supplier outside the set: the bad answer is rejected before the
+    step's own check ever sees it. That is the right place for it to fail, and
+    it means the step's check would be untested.
+
+    Wrapping a payload in this simulates the layer below failing, which is
+    exactly the scenario the second check exists for.
+    """
+
+
 class ScriptedClient(LLMClient):
     """Answers by purpose. Raises loudly on anything it was not given."""
 
@@ -34,7 +48,11 @@ class ScriptedClient(LLMClient):
             )
         entry = self.script[purpose]
         payload = entry(user) if callable(entry) else entry
-        parsed = output_model.model_validate(payload)
+        parsed = (
+            output_model.model_construct(**payload)
+            if isinstance(payload, Unvalidated)
+            else output_model.model_validate(payload)
+        )
         call = ModelCall(
             key=cassette_key(purpose, situation, output_model.__name__),
             purpose=purpose, model="scripted", system=system, user=user,
@@ -99,13 +117,19 @@ SUPPLIER_CHOICE = {
     ),
 }
 
-BAD_SUPPLIER_CHOICE = {
+BAD_SUPPLIER_CHOICE = Unvalidated({
     "supplier_id": "S-Q",
     "justification": (
         "Apex Rapid Components quote 38.90 with next day shipping, which is "
         "both cheaper and faster than every other option on the table."
     ),
-}
+})
+"""A supplier that was never offered, returned as if the schema had not held.
+
+`Unvalidated` is the point. The enum in the request schema should make this
+impossible, so this payload models the case where that guarantee fails, and
+proves the step's own check catches it anyway.
+"""
 
 NOTIFICATION_DRAFT = {
     "subject": "Supply change for production order 4812",
@@ -187,9 +211,15 @@ REALLOCATE_PLAN = {
 }
 
 
+def _draft(plan: dict) -> dict:
+    """A plan minus its workflow parameters, which are a separate call."""
+    return {k: v for k, v in plan.items() if k != "workflow_params"}
+
+
 def scenario_a(*, bad_choice: bool = False, bad_draft: bool = False) -> ScriptedClient:
     return ScriptedClient({
-        "plan": REROUTE_PLAN,
+        "plan": _draft(REROUTE_PLAN),
+        "plan.workflow_params": REROUTE_PLAN["workflow_params"],
         "workflow.select_supplier":
             BAD_SUPPLIER_CHOICE if bad_choice else SUPPLIER_CHOICE,
         "workflow.draft_notification":
@@ -198,7 +228,7 @@ def scenario_a(*, bad_choice: bool = False, bad_draft: bool = False) -> Scripted
 
 
 def scenario_b() -> ScriptedClient:
-    return ScriptedClient({"plan": REALLOCATE_PLAN})
+    return ScriptedClient({"plan": _draft(REALLOCATE_PLAN)})
 
 
 def combined(**kwargs) -> ScriptedClient:
@@ -206,6 +236,11 @@ def combined(**kwargs) -> ScriptedClient:
     a = scenario_a(**kwargs)
 
     def route_plan(user: str) -> dict:
-        return REALLOCATE_PLAN if "lot_hold" in user or "L-2093" in user else REROUTE_PLAN
+        chosen = (
+            REALLOCATE_PLAN
+            if "lot_hold" in user or "L-2093" in user
+            else REROUTE_PLAN
+        )
+        return _draft(chosen)
 
     return ScriptedClient(a.script | {"plan": route_plan})

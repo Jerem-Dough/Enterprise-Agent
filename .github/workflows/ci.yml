@@ -22,9 +22,9 @@ jobs:
         run: |
           python silo.py init --fresh
           python silo.py verify
-      - name: no em dashes in prose
-        run: |
-          if grep -rn --include='*.md' --include='*.py' --include='*.json' -P '\x{2014}|\x{2013}' . ; then
-            echo "em dash or en dash found; see CLAUDE.md"
-            exit 1
-          fi
+      - name: house style
+        run: python scripts/check_style.py
+      - name: the demo replays from committed cassettes, with no key
+        env:
+          SILO_LLM_MODE: replay
+        run: python silo.py demo

@@ -17,20 +17,27 @@ the definition, where it is bounded and logged, instead of leaving it to
 whatever the planner happened to put in the parameters.
 
 That first step is also where the model is allowed to reason, and it is worth
-being precise about how little it can do. Code computes the candidate list:
-suppliers who are approved, approved *for this specific part*, and not the one
-that just slipped. The model picks from that list and writes a justification.
-Its answer is validated against the list, so a supplier outside it cannot be
-chosen even if the model names one. Step two then re-derives approval from the
-supplier record anyway.
+being precise about how little it can do. Three mechanisms stack, and they fail
+independently:
 
-That re-derivation is not redundant. The seeded world contains a supplier that
-is approved, quotes the lowest price on file for this part, ships in one day,
-and emails an unsolicited offer on the morning of the scenario. It is not
-approved for this part. It never reaches the model, because the filter removed
-it, and it would not survive step two if it did. Two independent mechanisms,
-because the interesting failures are the ones where a model is persuasive and
-the record is boring.
+1. **Code computes the candidate list.** Suppliers who are approved, approved
+   *for this specific part*, and not the one that just slipped. Everything else
+   is gone before the model is involved at all.
+2. **The candidate list becomes an enum in the request schema.** The model is
+   not asked in prose to pick from a list; the schema it decodes against
+   contains only those ids. This one was added after a live call returned
+   "S-Z Meridian Drives" instead of "S-Z", which is a perfectly sensible answer
+   to the question the model thought it was being asked and is outside the set.
+   A firmer instruction would have made that rarer, not impossible.
+3. **The step re-checks the answer, and step two re-derives approval from the
+   supplier record.** Both would be redundant if the layer above always held.
+   The point of defence in depth is that you do not find out it did not hold by
+   having a purchase order appear.
+
+The seeded world contains a supplier that is approved, quotes the lowest price
+on file for this part, ships in one day, and emails an unsolicited offer on the
+morning of the scenario. It is not approved for this part. It has to get past
+all three to be chosen, and it does not get past the first.
 
 The second model step drafts the notification text. Its output is checked for
 the facts it must contain, and a deterministic template takes over if the check
@@ -40,8 +47,9 @@ turned a language problem into an outage.
 from __future__ import annotations
 
 from datetime import date, timedelta
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 
 from ..store import ScopedStore
 from . import Step, StepContext, StepOutcome, WorkflowDefinition, register, tool_step
@@ -96,10 +104,44 @@ def approved_candidates(
 
 
 class SupplierChoice(BaseModel):
+    """The unconstrained shape, kept for reference and for the cassette schema
+    name. The step actually calls the model with `choice_model()` below."""
+
     supplier_id: str = Field(description="Must be one of the offered candidates.")
     justification: str = Field(
         min_length=20,
         description="Why this candidate over the others, in one or two sentences.",
+    )
+
+
+def choice_model(candidate_ids: list[str]) -> type[BaseModel]:
+    """Build the output schema from the candidate list, at call time.
+
+    This is the difference between instructing a model and constraining one.
+    Asked in prose to return an id from a list, a real model returned
+    "S-Z Meridian Drives" rather than "S-Z": a reasonable answer to the
+    question it thought it was being asked, and outside the set. Telling it
+    more firmly would reduce how often that happens without changing what is
+    possible.
+
+    So the permitted values become an enum in the JSON schema handed to the
+    API. The model cannot emit a supplier outside the candidate list, because
+    the schema it is decoding against does not contain one. The check in
+    `_choose_supplier` stays anyway: structured output is a strong guarantee
+    and the workflow should not be the place we find out it was not.
+    """
+    return create_model(
+        "SupplierChoice",
+        supplier_id=(
+            Literal[tuple(candidate_ids)],  # type: ignore[valid-type]
+            Field(description="Exactly one of the offered candidate ids."),
+        ),
+        justification=(
+            str,
+            Field(min_length=20,
+                  description="Why this candidate over the others, in one or two "
+                              "sentences. Name the consideration that decided it."),
+        ),
     )
 
 
@@ -108,7 +150,9 @@ You are choosing a replacement supplier inside a fixed purchasing workflow.
 
 You will be given a list of candidates. That list has already been filtered to
 suppliers who are approved for this specific part. You may choose only from it.
-Naming anything else is an error, not a suggestion.
+
+Return the supplier id exactly as it appears in the list, for example S-Z. Do
+not include the supplier name in that field; it belongs in your justification.
 
 Choose on whether the lead time meets the date the material is needed, first,
 and on unit price second. A cheaper supplier that arrives too late is the wrong
@@ -176,7 +220,8 @@ def _choose_supplier(context: StepContext) -> StepOutcome:
         situation=f"{context.situation}:{context.step_id}",
         system=CHOICE_SYSTEM,
         user=user,
-        output_model=SupplierChoice,
+        # The schema itself carries the candidate list as an enum.
+        output_model=choice_model([c["supplier_id"] for c in offered]),
         max_tokens=2000,
     )
 
@@ -345,8 +390,13 @@ Constraints, all of them hard:
 - Name the production order, the new supplier, and the date the material is
   expected.
 - Plain text. No greeting, no sign-off, no bullet characters.
+- No em dashes and no double hyphens. Use a full stop when the two halves are
+  whole thoughts, a comma for an aside, a colon when the second half defines
+  the first.
 - Four sentences at most.
 """
+
+BANNED_PUNCTUATION = ("\u2014", "\u2013", " -- ")
 
 
 def _fallback_notice(order_id, supplier_name, arrival, part_id) -> tuple[str, str]:
@@ -397,8 +447,19 @@ def _notify(context: StepContext) -> StepOutcome:
             )
             if token not in draft.body
         ]
+        # House style is a hard rule on anything a colleague reads, and a
+        # prompt cannot guarantee it: one live run came back with an em dash
+        # in otherwise perfect text. Rewriting the punctuation here is banned,
+        # because a blind substitution produces sentences like "deliberately
+        # quiet. a ledger, a queue". So the draft is rejected and the
+        # deterministic template goes out instead, which is known good prose.
+        offending = [
+            p for p in BANNED_PUNCTUATION if p in draft.body or p in draft.subject
+        ]
         if missing:
             reason = f"draft omitted: {', '.join(missing)}"
+        elif offending:
+            reason = "draft used punctuation the house style forbids"
         else:
             subject, body = draft.subject, draft.body
             used_fallback, reason = False, ""
